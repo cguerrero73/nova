@@ -1,0 +1,8 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.select-none {
+  user-select: none;
+}

@@ -1,0 +1,15 @@
+database:
+  host: ${DB_HOST:-localhost}
+  port: ${DB_PORT:-5432}
+  user: ${DB_USER:-postgres}
+  password: ${DB_PASSWORD:-postgres}
+  database: ${DB_DATABASE:-nova}
+  schema: ${DB_SCHEMA:-public}
+
+jwt:
+  secret: ${JWT_SECRET:-your-super-secret-key-change-in-production}
+  expiry_mins: ${JWT_EXPIRY_MINS:-15}
+
+server:
+  port: ${SERVER_PORT:-4000}
+  env: ${SERVER_ENV:-development}

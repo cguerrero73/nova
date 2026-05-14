@@ -1,0 +1,287 @@
+<!-- Botón para abrir popup -->
+<button 
+  (click)="open()"
+  class="px-3 py-1.5 text-sm bg-primary-600 text-white rounded hover:bg-primary-700">
+  ✏️ Editar Query
+</button>
+
+<!-- Popup overlay -->
+@if (isOpen()) {
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="close()">
+    <div 
+      class="bg-background rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col"
+      (click)="$event.stopPropagation()">
+      
+      <!-- Header -->
+      <div class="p-4 border-b flex items-center justify-between">
+        <h2 class="text-lg font-semibold">{{ editMode() ? 'Editar Query' : 'Nueva Query' }}</h2>
+        <button (click)="close()" class="text-muted-foreground hover:text-foreground">✕</button>
+      </div>
+
+      <!-- Nombre y tipo -->
+      <div class="p-4 border-b space-y-3">
+        <div class="flex gap-4">
+          <div class="flex-1">
+            <label class="block text-sm font-medium mb-1">Nombre de la consulta</label>
+            <input 
+              type="text" 
+              [(ngModel)]="name" 
+              class="w-full px-3 py-2 border rounded bg-background"
+              placeholder="Mi Query" />
+          </div>
+          <div class="w-32">
+            <label class="block text-sm font-medium mb-1">Tipo</label>
+            <div class="flex gap-2 mt-2">
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="radio" [(ngModel)]="isPublic" [value]="false" />
+                <span class="text-sm">Privada</span>
+              </label>
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="radio" [(ngModel)]="isPublic" [value]="true" />
+                <span class="text-sm">Pública</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" [(ngModel)]="isDefault" id="isDefault" />
+          <span class="text-sm">Establecer como consulta por defecto</span>
+        </label>
+      </div>
+
+      <!-- Pestañas -->
+      <div class="flex border-b">
+        <button 
+          (click)="activeTab.set('fields')"
+          class="px-4 py-2 text-sm font-medium border-b-2 transition-colors"
+          [class.border-primary]="activeTab() === 'fields'"
+          [class.border-transparent]="activeTab() !== 'fields'"
+          [class.text-primary]="activeTab() === 'fields'">
+          Campos
+        </button>
+        <button 
+          (click)="activeTab.set('sort')"
+          class="px-4 py-2 text-sm font-medium border-b-2 transition-colors"
+          [class.border-primary]="activeTab() === 'sort'"
+          [class.border-transparent]="activeTab() !== 'sort'"
+          [class.text-primary]="activeTab() === 'sort'">
+          Ordenamiento
+        </button>
+        <button 
+          (click)="activeTab.set('filter')"
+          class="px-4 py-2 text-sm font-medium border-b-2 transition-colors"
+          [class.border-primary]="activeTab() === 'filter'"
+          [class.border-transparent]="activeTab() !== 'filter'"
+          [class.text-primary]="activeTab() === 'filter'">
+          Filtros
+        </button>
+      </div>
+
+      <!-- Contenido de pestañas -->
+      <div class="flex-1 overflow-auto p-4 min-h-[300px]">
+        
+        <!-- PESTAÑA: CAMPOS -->
+        @if (activeTab() === 'fields') {
+          <div class="grid grid-cols-2 gap-4">
+            <!-- Disponibles -->
+            <div>
+              <h3 class="font-medium mb-2 text-sm text-muted-foreground">
+                Campos disponibles ({{ availableFieldsList().length }})
+              </h3>
+              <div 
+                cdkDropList 
+                #availableList="cdkDropList"
+                [cdkDropListData]="availableFieldsList()"
+                [cdkDropListConnectedTo]="selectedList"
+                (cdkDropListDropped)="onDropAvailable($event)"
+                class="border rounded max-h-[280px] overflow-auto min-h-[100px]">
+                @for (field of availableFieldsList(); track field) {
+                  <div 
+                    cdkDrag
+                    class="flex items-center gap-2 p-2 hover:bg-muted cursor-move border-b last:border-b-0 bg-background">
+                    <span class="text-gray-400">⋮⋮</span>
+                    <span>{{ getFieldLabel(field) }}</span>
+                  </div>
+                } @empty {
+                  <p class="p-4 text-sm text-muted-foreground text-center">
+                    Todos los campos están seleccionados
+                  </p>
+                }
+              </div>
+            </div>
+            
+            <!-- Seleccionados con drag & drop -->
+            <div>
+              <h3 class="font-medium mb-2 text-sm text-muted-foreground">
+                Campos en grid ({{ selectedFields().length }})
+              </h3>
+              <div 
+                cdkDropList 
+                #selectedList="cdkDropList"
+                [cdkDropListData]="selectedFields()"
+                [cdkDropListConnectedTo]="availableList"
+                (cdkDropListDropped)="onDropSelected($event)"
+                class="border rounded max-h-[280px] overflow-auto min-h-[100px]">
+                @if (selectedFields().length === 0) {
+                  <p class="p-4 text-sm text-muted-foreground text-center">
+                    Arrastra campos desde la izquierda
+                  </p>
+                } @else {
+                  @for (fieldId of selectedFields(); track fieldId) {
+                    <div 
+                      cdkDrag
+                      class="flex items-center justify-between p-2 hover:bg-muted cursor-move border-b last:border-b-0 bg-background">
+                      <div class="flex items-center gap-2">
+                        <span class="text-gray-400">⋮⋮</span>
+                        <span>{{ getFieldLabel(fieldId) }}</span>
+                      </div>
+                    </div>
+                  }
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- PESTAÑA: ORDENAMIENTO -->
+        @if (activeTab() === 'sort') {
+          <div>
+            <div class="mb-4">
+              <div class="flex gap-2 mb-2">
+                <select 
+                  [(ngModel)]="sortField" 
+                  class="flex-1 px-3 py-2 border rounded bg-background">
+                  <option [ngValue]="null">Seleccionar campo...</option>
+                  @for (field of sortableFields(); track field.id) {
+                    <option [value]="field.id">{{ field.label }}</option>
+                  }
+                </select>
+                <select 
+                  [(ngModel)]="sortDirection" 
+                  class="w-28 px-3 py-2 border rounded bg-background">
+                  <option [value]="SORT_DIRECTION.ASC">Ascendente</option>
+                  <option [value]="SORT_DIRECTION.DESC">Descendente</option>
+                </select>
+                <button 
+                  (click)="addSort()"
+                  [disabled]="!sortField"
+                  class="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
+                  Agregar
+                </button>
+              </div>
+            </div>
+
+            <!-- Lista de ordenamientos -->
+            <div class="border rounded">
+              @if (currentSort().length === 0) {
+                <p class="p-4 text-sm text-muted-foreground text-center">
+                  No hay ordenamiento configurado
+                </p>
+              } @else {
+                @for (s of currentSort(); track s.field; let i = $index) {
+                  <div class="flex items-center justify-between p-3 border-b last:border-b-0">
+                    <div class="flex items-center gap-4">
+                      <span class="text-sm font-medium">{{ i + 1 }}</span>
+                      <span>{{ getFieldLabel(s.field) }}</span>
+                      <span class="text-muted-foreground text-sm">
+                        {{ s.direction === SORT_DIRECTION.ASC ? 'Ascendente' : 'Descendente' }}
+                      </span>
+                    </div>
+                    <button 
+                      (click)="removeSort(s.field)"
+                      class="text-red-500 text-sm hover:underline">
+                      Eliminar
+                    </button>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+        }
+
+        <!-- PESTAÑA: FILTROS -->
+        @if (activeTab() === 'filter') {
+          <div>
+            <!-- Agregar filtro -->
+            <div class="mb-4 p-3 bg-muted rounded-lg">
+              <div class="flex gap-2 mb-2">
+                <select 
+                  [(ngModel)]="newFilter.field" 
+                  class="flex-1 px-3 py-2 border rounded bg-background">
+                  <option [ngValue]="0">Seleccionar campo...</option>
+                  @for (field of filterableFields(); track field.id) {
+                    <option [value]="field.id">{{ field.label }}</option>
+                  }
+                </select>
+                <select 
+                  [(ngModel)]="newFilter.operator" 
+                  class="w-32 px-3 py-2 border rounded bg-background">
+                  @for (op of operatorList; track op.value) {
+                    <option [value]="op.value">{{ op.label }}</option>
+                  }
+                </select>
+              </div>
+              <div class="flex gap-2">
+                <input 
+                  type="text" 
+                  [(ngModel)]="newFilter.value"
+                  class="flex-1 px-3 py-2 border rounded bg-background"
+                  placeholder="Valor del filtro" 
+                  [disabled]="newFilter.operator === isNullOperator || newFilter.operator === isNotNullOperator" />
+                <button 
+                  (click)="addFilter()"
+                  [disabled]="!newFilter.field || newFilter.operator === 0"
+                  class="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
+                  Agregar
+                </button>
+              </div>
+            </div>
+
+            <!-- Lista de filtros -->
+            <div class="border rounded">
+              @if (filters().length === 0) {
+                <p class="p-4 text-sm text-muted-foreground text-center">
+                  No hay filtros configurados
+                </p>
+              } @else {
+                @for (filter of filters(); track $index; let i = $index) {
+                  <div class="flex items-center justify-between p-3 border-b last:border-b-0">
+                    <div class="flex items-center gap-2">
+                      <span>{{ getFieldLabel(filter.field) }}</span>
+                      <span class="text-muted-foreground">
+                        {{ getOperatorLabel(filter.operator) }}
+                      </span>
+                      @if (filter.operator !== isNullOperator && filter.operator !== isNotNullOperator) {
+                        <span class="font-medium">"{{ filter.value }}"</span>
+                      }
+                    </div>
+                    <button 
+                      (click)="removeFilter(i)"
+                      class="text-red-500 text-sm hover:underline">
+                      Eliminar
+                    </button>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="p-4 border-t flex justify-end gap-2">
+        <button 
+          (click)="close()"
+          class="px-4 py-2 border rounded hover:bg-muted">
+          Cancelar
+        </button>
+        <button 
+          (click)="save()"
+          [disabled]="!name || selectedFields().length === 0"
+          class="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
+          Guardar Consulta
+        </button>
+      </div>
+    </div>
+  </div>
+}

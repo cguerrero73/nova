@@ -1,0 +1,54 @@
+{
+  "name": "Nova Dev Container",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    },
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "portsAttributes": {
+    "4200": {"label": "Frontend (Angular)"},
+    "4000": {"label": "Backend (API)"},
+    "5432": {"label": "PostgreSQL"},
+    "5555": {"label": "Prisma Studio"}
+  },
+  "postCreateCommand": "npm install && npm run db:generate",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[typescriptreact]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[json]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[prisma]": {
+          "editor.defaultFormatter": "Prisma.prisma"
+        }
+      },
+      "extensions": [
+        "angular.ng-template",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "prisma.prisma",
+        "bradlc.vscode-tailwindcss",
+        "vivo.vivo-react",
+        "firsttris.vscode-jest-runner",
+        "ms-azuretools.vscode-docker",
+        "github.copilot",
+        "editorconfig.editorconfig"
+      ]
+    }
+  }
+}

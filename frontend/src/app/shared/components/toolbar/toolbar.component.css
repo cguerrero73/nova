@@ -1,0 +1,43 @@
+/* Toolbar Component Styles */
+:host {
+  display: block;
+}
+
+button:disabled {
+  pointer-events: none;
+}
+
+/* Smooth transitions */
+button {
+  transition: all 0.15s ease-in-out;
+}
+
+/* Focus styles for accessibility */
+button:focus-visible {
+  outline: 2px solid var(--color-primary, #3b82f6);
+  outline-offset: 2px;
+}
+
+/* Hover effects */
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+/* Active state */
+button:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* Search input focus */
+input:focus {
+  outline: none;
+  border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Responsive text */
+@media (max-width: 640px) {
+  button span {
+    display: none;
+  }
+}

@@ -1,0 +1,48 @@
+<div #scrollContainer class="overflow-auto h-full w-full" (scroll)="onScroll($event)">
+  <table class="w-full min-w-full">
+    <thead class="sticky top-0 bg-background z-10">
+      <tr>
+        @for (column of table().getHeaderGroups()[0].headers; track column.id) {
+          <th 
+            class="text-left p-3 border-b font-semibold text-sm text-foreground"
+            [style.width.px]="column.getSize()"
+            [class.cursor-pointer]="enableSorting()"
+            [class.select-none]="enableSorting()"
+            (click)="enableSorting() && toggleSort(column.id)">
+            <div class="flex items-center gap-2">
+              {{ getHeaderValue(column) }}
+            </div>
+          </th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of table().getRowModel().rows; track row.id) {
+        <tr 
+          class="hover:bg-muted/50 cursor-pointer transition-colors"
+          [ngClass]="{'bg-blue-50 dark:bg-blue-900/30 border-l-4 border-l-blue-500': isSelected(row)}"
+          (click)="onRowClickInternal(row)"
+          (dblclick)="onRowDoubleClickInternal(row, $event)">
+          
+          @for (cell of row.getVisibleCells(); track cell.id) {
+            <td class="p-3 border-b text-sm">
+              {{ getCellValue(cell) }}
+            </td>
+          }
+        </tr>
+      } @empty {
+        <tr>
+          <td [attr.colspan]="totalColumns()" class="p-8 text-center text-muted-foreground">
+            {{ loading() ? 'Cargando...' : 'No hay datos disponibles' }}
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (loading() && data().length > 0) {
+  <div class="p-2 text-center text-sm text-muted-foreground">
+    Cargando más datos...
+  </div>
+}

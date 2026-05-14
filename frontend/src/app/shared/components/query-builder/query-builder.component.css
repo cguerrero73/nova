@@ -1,0 +1,22 @@
+.cursor-move {
+  cursor: move;
+}
+
+.cdk-drag-preview {
+  background: white !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  border: 1px solid #e5e7eb;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+  background: #f3f4f6;
+}
+
+.cdk-drag-animating {
+  transition: transform 150ms ease;
+}
+
+.cdk-drop-list-dragging .cdk-drag {
+  transition: transform 150ms ease;
+}

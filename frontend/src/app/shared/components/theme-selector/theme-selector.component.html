@@ -1,0 +1,77 @@
+<div class="relative">
+  <!-- Trigger Button -->
+  <button
+    (click)="toggleDropdown()"
+    class="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+    type="button"
+  >
+    <!-- Theme Icon -->
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+    </svg>
+    <span class="text-sm">Tema</span>
+  </button>
+
+  <!-- Dropdown -->
+  @if (isOpen()) {
+    <div 
+      class="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="p-4">
+        <!-- Theme Section -->
+        <div class="mb-4">
+          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+            Tema de color
+          </label>
+          <div class="grid grid-cols-2 gap-2">
+            @for (theme of themes; track theme.name) {
+              <button
+                type="button"
+                (click)="onThemeChange(theme.name)"
+                class="flex items-center gap-2 p-2 rounded-md border transition-colors
+                       {{ currentThemeValue.name === theme.name 
+                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                           : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' }}"
+              >
+                <div 
+                  class="w-4 h-4 rounded-full"
+                  [style.background-color]="theme.colors.primary"
+                ></div>
+                <span class="text-sm text-gray-700 dark:text-gray-300">{{ theme.label }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Density Section -->
+        <div>
+          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+            Densidad
+          </label>
+          <div class="flex gap-2">
+            @for (density of densities; track density.name) {
+              <button
+                type="button"
+                (click)="onDensityChange(density.name)"
+                class="flex-1 p-2 rounded-md border text-center transition-colors text-sm
+                       {{ currentDensityValue === density.name 
+                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                           : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' }}"
+              >
+                <span class="text-gray-700 dark:text-gray-300">{{ density.label }}</span>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Backdrop to close -->
+    <div 
+      class="fixed inset-0 z-40"
+      (click)="closeDropdown()"
+    ></div>
+  }
+</div>

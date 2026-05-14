@@ -1,0 +1,64 @@
+<!-- Toolbar: barra de iconos -->
+<div class="flex items-center gap-1 px-2 py-2"
+     [style.background-color]="'var(--color-surface)'"
+     [style.border-color]="'var(--color-border)'"
+     [style.border-bottom-width]="'1px'"
+     [style.border-bottom-style]="'solid'">
+  
+  @for (button of resolvedButtons(); track button.id) {
+    <button
+      [disabled]="button.disabled"
+      (click)="onButtonClick(button)"
+      class="p-2 rounded-md transition-colors"
+      [class.bg-primary-600]="button.variant === 'primary' && !button.disabled"
+      [class.text-white]="button.variant === 'primary' && !button.disabled"
+      [class.hover:bg-primary-700]="button.variant === 'primary' && !button.disabled"
+      [class.bg-red-600]="button.variant === 'danger' && !button.disabled"
+      [class.text-white]="button.variant === 'danger' && !button.disabled"
+      [class.hover:bg-red-700]="button.variant === 'danger' && !button.disabled"
+      [class.bg-gray-200]="button.variant === 'secondary' && !button.disabled"
+      [class.text-gray-700]="button.variant === 'secondary' && !button.disabled"
+      [class.hover:bg-gray-300]="button.variant === 'secondary' && !button.disabled"
+      [class.text-gray-500]="(!button.variant || button.variant === 'ghost') && !button.disabled"
+      [class.hover:bg-gray-100]="(!button.variant || button.variant === 'ghost') && !button.disabled"
+      [class.opacity-50]="button.disabled"
+      [class.cursor-not-allowed]="button.disabled"
+      [title]="button.label + (button.shortcut ? ' (' + button.shortcut + ')' : '')"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        @switch (button.icon) {
+          @case ('create') {
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          }
+          @case ('delete') {
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          }
+          @case ('save') {
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+          }
+          @case ('print') {
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          }
+          @case ('refresh') {
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          }
+          @case ('close') {
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          }
+          @case ('prev') {
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          }
+          @case ('next') {
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          }
+          @case ('duplicate') {
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          }
+          @default {
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          }
+        }
+      </svg>
+    </button>
+  }
+</div>

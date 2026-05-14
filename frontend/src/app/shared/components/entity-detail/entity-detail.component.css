@@ -1,0 +1,89 @@
+/* Entity Detail Component Styles */
+:host {
+  display: block;
+}
+
+/* Drawer animation */
+.fixed.inset-0 {
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Panel slide animation */
+.relative.ml-auto.w-full {
+  animation: slideFromRight 0.3s ease-out;
+}
+
+@keyframes slideFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Backdrop */
+.absolute.inset-0.bg-black\/50 {
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Tab hover effects */
+button[role="tab"] {
+  transition: all 0.15s ease-in-out;
+}
+
+button[role="tab"]:hover {
+  background-color: var(--color-muted, #f3f4f6);
+}
+
+/* Form field focus */
+input:focus, 
+select:focus, 
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Loading spinner */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Scrollbar styling */
+.overflow-auto::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.overflow-auto::-webkit-scrollbar-track {
+  background: var(--color-muted, #f3f4f6);
+}
+
+.overflow-auto::-webkit-scrollbar-thumb {
+  background: var(--color-border, #d1d5db);
+  border-radius: 4px;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary, #9ca3af);
+}

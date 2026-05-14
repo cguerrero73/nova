@@ -1,0 +1,14 @@
+:host {
+  display: block;
+  height: 100vh;
+}
+
+@media (min-width: 1024px) {
+  aside.hidden {
+    display: none;
+  }
+  
+  aside.block {
+    display: block;
+  }
+}

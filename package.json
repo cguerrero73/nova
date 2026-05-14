@@ -1,0 +1,31 @@
+{
+  "name": "nova",
+  "version": "1.0.0",
+  "description": "Nova - Internal Framework for Rapid Application Development",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "overrides": {
+    "typescript": "~5.8.0",
+    "ts-api-utils": {
+      "typescript": "~5.8.0"
+    }
+  },
+  "scripts": {
+    "dev": "make dev",
+    "build": "make build",
+    "test": "make test",
+    "lint": "make lint",
+    "db:migrate": "cd backend && npx prisma migrate dev",
+    "db:generate": "cd backend && npx prisma generate"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "dependencies": {
+    "@tanstack/angular-table": "^8.21.3"
+  }
+}

@@ -1,0 +1,322 @@
+<!-- Main Layout -->
+<div class="h-screen flex flex-col overflow-hidden" 
+     [style.background-color]="'var(--color-background)'" 
+     [style.color]="'var(--color-text)'">
+  <!-- Header -->
+  <header class="h-12 flex-shrink-0 flex items-center justify-between px-4" [style.background-color]="'var(--color-surface)'" [style.border-color]="'var(--color-border)'" [style.border-bottom-width]="'1px'" [style.border-bottom-style]="'solid'">
+    <!-- Left: Logo + Menu -->
+    <div class="flex items-center gap-4">
+      <!-- Mobile menu button -->
+      <button 
+        (click)="toggleSidebar()"
+        class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <a routerLink="/dashboard" class="text-xl font-bold" [style.color]="'var(--color-primary)'">
+        NOVA
+      </a>
+      
+      <!-- Keyboard shortcut hint -->
+      <button 
+        (click)="showKeyboardShortcuts.set(!showKeyboardShortcuts())"
+        class="hidden sm:flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+      >
+        <kbd class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">Ctrl</kbd>
+        <span>+</span>
+        <kbd class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">K</kbd>
+      </button>
+    </div>
+
+    <!-- Center: Page title (optional - can be set by router) -->
+    <div class="flex-1 text-center">
+      <span class="text-sm font-medium text-gray-600 dark:text-gray-400">v1.0.0 (DEV)</span>
+    </div>
+
+    <!-- Right: Theme + API Status + User -->
+    <div class="flex items-center gap-3">
+      <!-- API Status -->
+      <div class="flex items-center gap-1.5 text-xs">
+        <span class="w-2 h-2 rounded-full" 
+          [class.bg-green-500]="apiStatus() === 'connected'" 
+          [class.bg-red-500]="apiStatus() === 'disconnected'"></span>
+        <span class="text-gray-500 dark:text-gray-400" 
+          [class.text-green-600]="apiStatus() === 'connected'"
+          [class.text-red-600]="apiStatus() === 'disconnected'">
+          {{ apiStatus() === 'connected' ? 'API OK' : 'API OFF' }}
+        </span>
+      </div>
+      
+      <app-theme-selector />
+      
+      @if (isAuthenticated() && user()) {
+        <div class="relative">
+          <button
+            (click)="toggleUserMenu()"
+            class="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
+              {{ (user()?.name?.charAt(0) || 'U').toUpperCase() }}
+            </div>
+            <span class="hidden sm:block text-gray-700 dark:text-gray-300">{{ user()?.name || 'Usuario' }}</span>
+            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          @if (showUserMenu()) {
+            <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 border border-gray-200 dark:border-gray-700 z-50">
+              <button
+                (click)="logout()"
+                class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          }
+        </div>
+      } @else {
+        <a
+          routerLink="/login"
+          class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+        >
+          Iniciar sesión
+        </a>
+      }
+    </div>
+  </header>
+
+  <!-- Body: Sidebar + Main Content -->
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Sidebar -->
+    <aside 
+      class="flex-shrink-0 overflow-y-auto transition-all duration-300 border-r"
+      [class.w-16]="sidebarCollapsed()"
+      [class.w-64]="!sidebarCollapsed()"
+      [style.background-color]="'var(--color-surface)'"
+      [style.border-color]="'var(--color-border)'"
+    >
+      <!-- Toggle button -->
+      <div class="p-2 flex" [class.justify-center]="sidebarCollapsed()">
+        <button 
+          (click)="toggleSidebarCollapse()"
+          class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+          [title]="sidebarCollapsed() ? 'Expandir' : 'Colapsar'"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            @if (sidebarCollapsed()) {
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            } @else {
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            }
+          </svg>
+        </button>
+      </div>
+
+      <nav class="p-2 space-y-1">
+        @if (isAuthenticated()) {
+          <!-- Dashboard -->
+          <a 
+            routerLink="/dashboard" 
+            routerLinkActive="bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400"
+            class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg"
+            [style.color]="'var(--color-text)'"
+            [class.justify-center]="sidebarCollapsed()"
+          >
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            @if (!sidebarCollapsed()) {
+              Dashboard
+            }
+          </a>
+
+          @if (!sidebarCollapsed()) {
+            <div class="text-xs font-semibold uppercase tracking-wider my-3 px-3" [style.color]="'var(--color-text-secondary)'">
+              Gestión
+            </div>
+          }
+          
+          <!-- Users -->
+          <a 
+            routerLink="/users" 
+            routerLinkActive="bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400"
+            class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg"
+            [style.color]="'var(--color-text)'"
+            [class.justify-center]="sidebarCollapsed()"
+          >
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m9 5.197v1" />
+            </svg>
+            @if (!sidebarCollapsed()) {
+              Usuarios
+            }
+          </a>
+
+          <!-- Roles -->
+          <a 
+            routerLink="/roles" 
+            routerLinkActive="bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400"
+            class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg"
+            [style.color]="'var(--color-text)'"
+            [class.justify-center]="sidebarCollapsed()"
+          >
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            @if (!sidebarCollapsed()) {
+              Roles
+            }
+          </a>
+
+          <!-- Settings -->
+          <a 
+            routerLink="/settings" 
+            routerLinkActive="bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400"
+            class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg"
+            [style.color]="'var(--color-text)'"
+            [class.justify-center]="sidebarCollapsed()"
+          >
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            @if (!sidebarCollapsed()) {
+              Configuración
+            }
+          </a>
+
+          @if (isAdmin()) {
+            @if (!sidebarCollapsed()) {
+              <div class="text-xs font-semibold uppercase tracking-wider my-3 px-3" [style.color]="'var(--color-text-secondary)'">
+                Administración
+              </div>
+            }
+            
+            <!-- Auth Config -->
+            <a 
+              routerLink="/admin/auth-config" 
+              routerLinkActive="bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400"
+              class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg"
+              [style.color]="'var(--color-text)'"
+              [class.justify-center]="sidebarCollapsed()"
+            >
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              @if (!sidebarCollapsed()) {
+                Autenticación
+              }
+            </a>
+
+            <!-- Audit Log -->
+            <a 
+              routerLink="/admin/audit" 
+              routerLinkActive="bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400"
+              class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg"
+              [style.color]="'var(--color-text)'"
+              [class.justify-center]="sidebarCollapsed()"
+            >
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+              @if (!sidebarCollapsed()) {
+                Registro de Auditoría
+              }
+            </a>
+          }
+        }
+      </nav>
+    </aside> 
+
+    <!-- Overlay for mobile sidebar -->
+    @if (showSidebar()) {
+      <div 
+        class="fixed inset-0 bg-black/50 z-40 lg:hidden"
+        (click)="toggleSidebar()"
+      ></div>
+      
+      <!-- Mobile Sidebar -->
+      <aside 
+        class="fixed top-16 left-0 bottom-0 w-64 z-50 overflow-y-auto border-r lg:hidden"
+        [style.background-color]="'var(--color-surface)'"
+        [style.border-color]="'var(--color-border)'"
+      >
+        <nav class="p-4 space-y-1">
+          @if (isAuthenticated()) {
+            <a routerLink="/dashboard" routerLinkActive="bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400" class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg" [style.color]="'var(--color-text)'">
+              Dashboard
+            </a>
+            <div class="text-xs font-semibold uppercase tracking-wider my-3" [style.color]="'var(--color-text-secondary)'">Gestión</div>
+            <a routerLink="/users" routerLinkActive="bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400" class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg" [style.color]="'var(--color-text)'">
+              Usuarios
+            </a>
+            <a routerLink="/roles" routerLinkActive="bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400" class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg" [style.color]="'var(--color-text)'">
+              Roles
+            </a>
+            <a routerLink="/settings" routerLinkActive="bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400" class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg" [style.color]="'var(--color-text)'">
+              Configuración
+            </a>
+            @if (isAdmin()) {
+              <div class="text-xs font-semibold uppercase tracking-wider my-3" [style.color]="'var(--color-text-secondary)'">Administración</div>
+              <a routerLink="/admin/auth-config" routerLinkActive="bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400" class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg" [style.color]="'var(--color-text)'">
+                Autenticación
+              </a>
+              <a routerLink="/admin/audit" routerLinkActive="bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400" class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg" [style.color]="'var(--color-text)'">
+                Registro de Auditoría
+              </a>
+            }
+          }
+        </nav>
+      </aside>
+    }
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col min-h-0 overflow-hidden" [style.padding]="mainPadding()">
+      <div class="flex-1 min-h-0 overflow-hidden">
+        <router-outlet />
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Keyboard Shortcuts Modal -->
+@if (showKeyboardShortcuts()) {
+  <div 
+    class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+    (click)="showKeyboardShortcuts.set(false)"
+  >
+    <div 
+      class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-96"
+      (click)="$event.stopPropagation()"
+    >
+      <h3 class="text-lg font-semibold mb-4">Atajos de teclado</h3>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-600 dark:text-gray-400">Buscar</span>
+          <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">Ctrl + K</kbd>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600 dark:text-gray-400">Nuevo registro</span>
+          <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">Ctrl + N</kbd>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600 dark:text-gray-400">Guardar</span>
+          <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">Ctrl + S</kbd>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600 dark:text-gray-400">Cerrar/Esc</span>
+          <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">Esc</kbd>
+        </div>
+      </div>
+      <button 
+        (click)="showKeyboardShortcuts.set(false)"
+        class="mt-4 w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+      >
+        Cerrar
+      </button>
+    </div>
+  </div>
+}

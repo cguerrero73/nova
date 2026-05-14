@@ -1,0 +1,3 @@
+-- Nova EAM - Global Seeds
+-- Description: Seeds for global (public) schema
+-- Currently empty - global seeds go here if needed

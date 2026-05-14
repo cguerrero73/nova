@@ -1,0 +1,127 @@
+<div class="flex flex-col h-full">
+  <!-- Toolbar: solo iconos -->
+  <app-toolbar
+    [translations]="t"
+    [translationPrefix]="'toolbar.'"
+    [saveEnabled]="hasUnsavedChanges()"
+    [createEnabled]="true"
+    [deleteEnabled]="!!selected()"
+    [prevEnabled]="canNavigatePrev()"
+    [nextEnabled]="canNavigateNext()"
+    [duplicateEnabled]="!!selected()"
+    [refreshEnabled]="true"
+    [printEnabled]="true"
+    (save)="onSaveFromToolbar()"
+    (create)="onCreate()"
+    (delete)="onDelete()"
+    (prev)="onPrev()"
+    (next)="onNext()"
+    (duplicate)="onDuplicate()"
+    (refresh)="onRefresh()"
+    (print)="onPrint()"
+  />
+
+  <!-- Query Builder (solo cuando drawer cerrado) -->
+  @if (!showDetail()) {
+    <div class="flex items-center gap-2 px-4 py-2 flex-shrink-0" [style.background-color]="'var(--color-surface)'">
+      <select 
+        [value]="selectedQueryId()"
+        (change)="onQuerySelect($event)"
+        class="px-3 py-1.5 text-sm border rounded bg-background min-w-[200px]"
+        [style.border-color]="'var(--color-border)'"
+        [style.background-color]="'var(--color-background)'"
+        [style.color]="'var(--color-text)'"
+      >
+        <option value="">{{ t['query.select'] || 'Seleccionar query...' }}</option>
+        @for (q of queryService.queries(); track q.id) {
+          <option [value]="q.id">
+            {{ q.name }}{{ q.isDefault ? ' (default)' : '' }}
+          </option>
+        }
+      </select>
+      
+      <app-query-builder
+        [gridId]="GRID_IDS.USERS"
+        [initialQuery]="selectedQueryForBuilder()"
+        (saved)="onQuerySaved($event)"
+      />
+    </div>
+  }
+
+  <!-- Main Content Area -->
+  <div class="flex-1 min-h-0 overflow-hidden">
+    
+    <!-- Grid (solo cuando drawer cerrado) -->
+    @if (!showDetail()) {
+      <div class="h-full min-h-0 overflow-auto">
+      <app-data-grid
+            [columns]="columns"
+            [data]="userService.users()"
+            [meta]="gridMeta()"
+            [selectedRow]="selected()"
+            (rowSelect)="onUserSelect($event)"
+            (rowDoubleClick)="onRowDoubleClick($event)"
+            (pageChange)="onPageChange($event)"
+          />
+      </div>
+      
+      @if (selected()) {
+        <div class="p-3 bg-muted flex items-center justify-between flex-shrink-0" [style.background-color]="'var(--color-muted)'">
+          <span class="text-sm">{{ t['grid.selected'] || 'Usuario seleccionado' }}: {{ selected()?.name }}</span>
+          <button 
+            class="text-sm text-blue-600 hover:underline"
+            (click)="selected.set(null)">
+            {{ t['grid.deselect'] || 'Deseleccionar' }}
+          </button>
+        </div>
+      }
+    }
+
+    <!-- Entity Detail Drawer -->
+    <app-entity-detail
+      [isOpen]="showDetail()"
+      [entity]="detailEntity()"
+      [entityId]="detailEntity()?.id ?? null"
+      [entityLabel]="detailEntity()?.name ?? ''"
+        [title]="t['detail.title'] || 'Usuario'"
+        [subtitle]="detailEntity()?.email ?? ''"
+        [isLoading]="detailLoading()"
+        [tabs]="tabs"
+        (close)="onDetailClose()"
+        (save)="onDetailSave($event)"
+    >
+      <!-- Template: Visualización del Registro -->
+      <ng-template #viewTemplate>
+        <app-entity-form
+          [fields]="formFields"
+          [initialData]="getDetailEntityData()"
+          (fieldChange)="onFieldChange($event.key, $event.value)"
+        />
+      </ng-template>
+
+      <!-- Template: Comentarios -->
+      <ng-template #commentsTemplate>
+        <app-related-info
+          [sections]="[relatedSections[0]]"
+          (itemClick)="onRelatedItemClick($event)"
+        />
+      </ng-template>
+
+      <!-- Template: Documentos -->
+      <ng-template #documentsTemplate>
+        <app-related-info
+          [sections]="[relatedSections[1]]"
+          (itemClick)="onRelatedItemClick($event)"
+        />
+      </ng-template>
+
+      <!-- Template: Historial -->
+      <ng-template #auditTemplate>
+        <app-related-info
+          [sections]="[relatedSections[2]]"
+          (itemClick)="onRelatedItemClick($event)"
+        />
+      </ng-template>
+    </app-entity-detail>
+  </div>
+</div>
