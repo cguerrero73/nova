@@ -17,4 +17,5 @@ DROP TABLE IF EXISTS eamrole_permissions;
 DROP TABLE IF EXISTS eamroles;
 DROP TABLE IF EXISTS eamusers;
 DROP TABLE IF EXISTS eamuser_organizations;
+DROP TABLE IF EXISTS eamuoms;
 DROP TABLE IF EXISTS eamorganizations;

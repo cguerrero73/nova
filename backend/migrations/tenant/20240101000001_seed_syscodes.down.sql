@@ -1,0 +1,4 @@
+-- Nova EAM - Seed System Codes Rollback
+-- Timestamp: 20240101000001
+-- Description: Rollback seed data (no-op for reference data)
+-- Note: Reference data seeds do not rollback - they persist

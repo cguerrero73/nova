@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -27,8 +26,9 @@ func main() {
 	tenant := flag.String("tenant", "", "Tenant code (required for tenant type)")
 	direction := flag.String("direction", "up", "up|down|status")
 	steps := flag.Int("steps", -1, "Number of migrations (-1 = all)")
-	seed := flag.Bool("seed", false, "Run seeds")
-	bootstrap := flag.Bool("bootstrap", false, "Create schema + migrate + seed")
+	seed := flag.Bool("seed", false, "[DEPRECATED] Seeds are now part of migrations")
+	_ = seed // Keep for backwards compatibility, value is ignored
+	bootstrap := flag.Bool("bootstrap", false, "Create schema + migrate")
 	configPathFlag := flag.String("config", "config.yaml", "Path to config file")
 	flag.Parse()
 
@@ -42,6 +42,12 @@ func main() {
 		switch args[0] {
 		case "up", "down", "status":
 			*direction = args[0]
+		case "seed":
+			// Deprecated: seeds are now migrations, just run up
+			// Kept for backwards compatibility
+			fmt.Println("Warning: 'seed' command is deprecated. Seeds are now part of migrations.")
+			fmt.Println("Use 'up' to apply all migrations including seeds.")
+			*direction = "up"
 		default:
 			// Unknown positional arg, ignore or could error
 		}
@@ -62,14 +68,14 @@ func main() {
 		fmt.Println("  nova-migrate -type=global up                    # Apply all global migrations")
 		fmt.Println("  nova-migrate -type=global down                 # Rollback last global migration")
 		fmt.Println("  nova-migrate -type=global status              # Show global migration status")
-		fmt.Println("  nova-migrate -type=global seed                # Run global seeds")
 		fmt.Println("")
 		fmt.Println("Tenant migrations:")
-		fmt.Println("  nova-migrate -type=tenant -tenant=CODE up      # Apply tenant migrations")
+		fmt.Println("  nova-migrate -type=tenant -tenant=CODE up      # Apply tenant migrations (incl. seeds)")
 		fmt.Println("  nova-migrate -type=tenant -tenant=CODE down   # Rollback last tenant migration")
 		fmt.Println("  nova-migrate -type=tenant -tenant=CODE status  # Show tenant migration status")
-		fmt.Println("  nova-migrate -type=tenant -tenant=CODE seed    # Run tenant seeds")
-		fmt.Println("  nova-migrate -type=tenant -tenant=CODE bootstrap # Create schema + migrate + seed")
+		fmt.Println("  nova-migrate -type=tenant -tenant=CODE bootstrap # Create schema + migrate")
+		fmt.Println("")
+		fmt.Println("Note: Seeds are now versioned migrations. 'up' applies schema + seed data.")
 		fmt.Println("")
 		fmt.Println("Options:")
 		fmt.Println("  -steps=N     Number of migrations to apply/rollback (-1 = all)")
@@ -84,16 +90,16 @@ func main() {
 
 	switch *migType {
 	case "global":
-		runGlobal(*direction, *steps, *seed)
+		runGlobal(*direction, *steps)
 	case "tenant":
-		runTenant(tenantCode, *direction, *steps, *seed, *bootstrap)
+		runTenant(tenantCode, *direction, *steps, *bootstrap)
 	default:
 		log.Fatalf("Unknown migration type: %s (use global or tenant)", *migType)
 	}
 }
 
-// runGlobal executes global migrations and/or seeds
-func runGlobal(direction string, steps int, runSeed bool) {
+// runGlobal executes global migrations
+func runGlobal(direction string, steps int) {
 	fmt.Println("=== Global Migrations ===")
 
 	// Build connection string for public schema
@@ -111,16 +117,10 @@ func runGlobal(direction string, steps int, runSeed bool) {
 	case "status":
 		showStatus(connStr, "migrations/global")
 	}
-
-	// Run seeds if requested
-	if runSeed {
-		fmt.Println("\n=== Global Seeds ===")
-		runSeeds(connStr, "seeds/global")
-	}
 }
 
-// runTenant executes tenant migrations and/or seeds
-func runTenant(tenant string, direction string, steps int, runSeed bool, bootstrap bool) {
+// runTenant executes tenant migrations (seeds are now part of migrations)
+func runTenant(tenant string, direction string, steps int, bootstrap bool) {
 	fmt.Printf("=== Tenant: %s ===\n", tenant)
 
 	schemaName := fmt.Sprintf("tenant_%s", tenant)
@@ -139,19 +139,13 @@ func runTenant(tenant string, direction string, steps int, runSeed bool, bootstr
 		cfg.Database.User, cfg.Database.Password, cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, schemaName,
 	)
 
-	// Step 2: Run migrations
+	// Step 2: Run migrations (includes seeds - they are now versioned migrations)
 	if direction == "up" || direction == "down" {
 		if err := runMigrations(connStr, "migrations/tenant", direction, steps); err != nil {
 			log.Printf("Migration error: %v", err)
 		}
 	} else if direction == "status" {
 		showStatus(connStr, "migrations/tenant")
-	}
-
-	// Step 3: Run seeds if requested
-	if runSeed || bootstrap {
-		fmt.Printf("\n=== Tenant Seeds: %s ===\n", tenant)
-		runSeeds(connStr, "seeds/tenant")
 	}
 }
 
@@ -273,62 +267,6 @@ func showStatus(connStr string, migrationsPath string) {
 	fmt.Printf("Current version: %d, dirty: %v\n", version, dirty)
 }
 
-// runSeeds executes seed files
-func runSeeds(connStr string, seedsPath string) {
-	// Check if seeds directory exists
-	if _, err := os.Stat(seedsPath); os.IsNotExist(err) {
-		fmt.Printf("Seeds path %s does not exist, skipping\n", seedsPath)
-		return
-	}
-
-	// Connect to database
-	conn, err := pgx.Connect(context.Background(), connStr)
-	if err != nil {
-		log.Printf("Failed to connect for seeds: %v", err)
-		return
-	}
-	defer conn.Close(context.Background())
-
-	// Find all SQL files in seeds directory
-	files, err := os.ReadDir(seedsPath)
-	if err != nil {
-		log.Printf("Failed to read seeds directory: %v", err)
-		return
-	}
-
-	for _, file := range files {
-		if file.IsDir() || !strings.HasSuffix(file.Name(), ".sql") {
-			continue
-		}
-
-		filePath := filepath.Join(seedsPath, file.Name())
-		fmt.Printf("Running seed: %s\n", file.Name())
-
-		content, err := os.ReadFile(filePath)
-		if err != nil {
-			log.Printf("Failed to read seed file %s: %v", file.Name(), err)
-			continue
-		}
-
-		// Split by semicolon and execute each statement
-		statements := strings.Split(string(content), ";")
-		for _, stmt := range statements {
-			stmt = strings.TrimSpace(stmt)
-			if stmt == "" || strings.HasPrefix(stmt, "--") {
-				continue
-			}
-			_, err := conn.Exec(context.Background(), stmt)
-			if err != nil {
-				// Ignore "already exists" errors for seeds
-				errStr := err.Error()
-				if strings.Contains(errStr, "duplicate key") ||
-					strings.Contains(errStr, "duplicate entry") ||
-					strings.Contains(errStr, "already exists") {
-					continue
-				}
-				log.Printf("Seed statement failed in %s: %v", file.Name(), err)
-			}
-		}
-		fmt.Printf("  Seed %s completed\n", file.Name())
-	}
-}
+// Notes on runSeeds:
+// Seeds are now versioned as part of migrations (e.g., 20240101000001_seed_syscodes.up.sql)
+// The runSeeds function is kept for reference but is no longer called by the runner

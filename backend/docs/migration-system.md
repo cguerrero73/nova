@@ -4,6 +4,13 @@
 
 Nova EAM uses [golang-migrate](https://github.com/golang-migrate/migrate) as the core migration engine, with a thin orchestration layer (`cmd/migrate/main.go`) that handles tenant-specific workflows.
 
+## Key Design Decision: Seeds as Versioned Migrations
+
+Seeds (reference data like syscodes and default roles) are versioned as part of migrations, not separate files. This ensures:
+- **Unified version tracking**: golang-migrate tracks all schema + data migrations
+- **Automatic ordering**: Seeds run in correct sequence after schema creation
+- **Rollback support**: Each seed migration has a `.down.sql` stub (typically no-op for reference data)
+
 ## Architecture Diagram
 
 ```
@@ -15,10 +22,9 @@ nova-migrate CLI
 │                                             │
 │  Responsibilities:                          │
 │  • Parse CLI flags                          │
-│  • Build connection string (search_path)   │
+│  • Build connection string (search_path)    │
 │  • Create tenant schema (if needed)         │
-│  • Orchestrate: migrate + seeds             │
-│  • Bootstrap workflow                        │
+│  • Run migrations (schema + data)           │
 └──────────────────────┬──────────────────────┘
                        │
                        ▼
@@ -52,28 +58,34 @@ backend/
 │   ├── global/                    # Global schema migrations
 │   │   ├── YYYYMMDDHHMMSS_name.up.sql
 │   │   └── YYYYMMDDHHMMSS_name.down.sql
-│   └── tenant/                    # Tenant schema migrations
-│       ├── YYYYMMDDHHMMSS_name.up.sql
-│       └── YYYYMMDDHHMMSS_name.down.sql
-└── seeds/
-    └── tenant/                    # Tenant reference data
-        ├── 001_*.sql
-        └── 002_*.sql
+│   └── tenant/                    # Tenant schema + data migrations
+│       ├── YYYYMMDDHHMMSS_init_*.up.sql      # Schema creation
+│       ├── YYYYMMDDHHMMSS_init_*.down.sql   # Schema rollback
+│       ├── YYYYMMDDHHMMSS_seed_*.up.sql     # Reference data
+│       └── YYYYMMDDHHMMSS_seed_*.down.sql   # Data rollback (no-op)
+```
+
+### Migration Ordering
+
+Tenant migrations run in timestamp order:
+
+```
+000 - init_tenant.up.sql     → Creates tables (eamorganizations, eamusers, etc.)
+001 - seed_syscodes.up.sql   → Populates system codes (OBTP, OBST, JBTP, JBST, etc.)
+002 - seed_defaults.up.sql   → Populates default roles and common org
 ```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `-type=global up` | Apply global migrations |
+| `-type=global up` | Apply all global migrations |
 | `-type=global down` | Rollback last global migration |
 | `-type=global status` | Show global migration version |
-| `-type=global seed` | Run global seeds |
-| `-type=tenant -tenant=CODE up` | Apply tenant migrations |
+| `-type=tenant -tenant=CODE up` | Apply tenant schema + data migrations |
 | `-type=tenant -tenant=CODE down` | Rollback last tenant migration |
 | `-type=tenant -tenant=CODE status` | Show tenant migration version |
-| `-type=tenant -tenant=CODE seed` | Run tenant seeds |
-| `-type=tenant -tenant=CODE bootstrap` | Create schema + migrate + seed |
+| `-type=tenant -tenant=CODE bootstrap` | Create schema + apply migrations |
 
 ## Connection String & Search Path
 
@@ -100,5 +112,4 @@ Note: `public` is included in tenant search_path to allow access to `uuid_genera
 
 - **Schema creation**: `CREATE SCHEMA IF NOT EXISTS tenant_{code}` (golang-migrate doesn't do this)
 - **Search path configuration**: Sets correct schema context
-- **Bootstrap orchestration**: Sequences schema → migrate → seeds
-- **Seed execution**: Runs reference data scripts separately from migrations
+- **Bootstrap orchestration**: Sequences schema → migrate (which includes seeds)

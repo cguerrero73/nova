@@ -1,0 +1,4 @@
+-- Nova EAM - Seed Default Roles Rollback
+-- Timestamp: 20240101000002
+-- Description: Rollback seed data (no-op for reference data)
+-- Note: Reference data seeds do not rollback - they persist
