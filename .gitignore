@@ -1,1 +1,6 @@
 node_modules
+# Local Pi runtime state
+.atl/
+.pi/
+backend/.pi-lens/
+backend/nova-migrate

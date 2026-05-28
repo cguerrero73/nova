@@ -18,8 +18,8 @@
     "build": "make build",
     "test": "make test",
     "lint": "make lint",
-    "db:migrate": "cd backend && npx prisma migrate dev",
-    "db:generate": "cd backend && npx prisma generate"
+    "db:migrate": "cd backend && ./nova-migrate -type=global up && ./nova-migrate -type=tenant -tenant=demo up",
+    "db:seed": "cd backend && ./nova-migrate -type=global seed && ./nova-migrate -type=tenant -tenant=demo seed"
   },
   "engines": {
     "node": ">=20.0.0",

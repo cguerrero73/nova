@@ -1,5 +1,5 @@
 .PHONY: help dev devFrontend devBackend build test lint lintFix
-.PHONY: dbMigrate dbGenerate dbPush dbStudio dbSeed clean
+.PHONY: dbMigrate dbSeed clean
 
 help:
 	@echo "Available commands:"
@@ -11,10 +11,7 @@ help:
 	@echo "  make test        - Run all tests"
 	@echo "  make lint        - Lint all projects"
 	@echo "  make lintFix     - Auto-fix linting issues"
-	@echo "  make dbMigrate   - Run Prisma migrations"
-	@echo "  make dbGenerate  - Generate Prisma client"
-	@echo "  make dbPush      - Push schema to database"
-	@echo "  make dbStudio    - Open Prisma Studio"
+	@echo "  make dbMigrate   - Run database migrations (golang-migrate)"
 	@echo "  make dbSeed      - Seed database"
 	@echo "  make clean       - Remove build artifacts"
 
@@ -22,47 +19,37 @@ dev:
 	@echo "Starting Nova development environment..."
 	@echo "Frontend: http://localhost:4200"
 	@echo "Backend:  http://localhost:4000"
-	@echo "Prisma Studio: http://localhost:5555"
-	cd backend && pnpm run dev &
-	cd frontend && pnpm start &
+	@cd backend && make dev &
+	@cd frontend && pnpm start &
 
 devFrontend:
 	cd frontend && pnpm start
 
 devBackend:
-	cd backend && pnpm run dev
+	cd backend && make dev
 
 build:
-	cd backend && pnpm run build
+	cd backend && make build
 	cd frontend && pnpm run build
 
 test:
-	cd backend && pnpm test
+	cd backend && make test
 	cd frontend && pnpm test
 
 lint:
-	cd backend && pnpm run lint
+	cd backend && make lint
 	cd frontend && pnpm run lint
 
 lintFix:
-	cd backend && pnpm run lintFix
-	cd frontend && pnpm run lintFix
+	cd backend && golangci-lint run --fix
+	cd frontend && pnpm run lint --fix
 
 dbMigrate:
-	cd backend && npx prisma migrate dev
-
-dbGenerate:
-	cd backend && npx prisma generate
-
-dbPush:
-	cd backend && npx prisma db push
-
-dbStudio:
-	cd backend && npx prisma studio
+	cd backend && make migrate-up
 
 dbSeed:
-	cd backend && npx prisma db seed
+	cd backend && make seed
 
 clean:
 	cd frontend && pnpm run clean || true
-	cd backend && pnpm run clean || true
+	cd backend && make clean || true
