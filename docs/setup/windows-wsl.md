@@ -92,11 +92,11 @@ VS Code will open and prompt to reopen in container.
 Once inside the container, run:
 
 ```bash
-# Install dependencies
-npm install
+# Install frontend dependencies
+cd frontend && npm install && cd ..
 
-# Generate Prisma client
-npm run db:generate
+# Run database migrations (Go with golang-migrate)
+make db:migrate
 
 # Start development servers
 make dev
@@ -105,9 +105,17 @@ make dev
 You should see:
 - Frontend: http://localhost:4200
 - Backend: http://localhost:4000
-- API Docs: http://localhost:4000/docs
 
-## Troubleshooting
+## Project Commands
+
+```bash
+make dev          # Start all services
+make db:migrate   # Run database migrations
+make db:seed      # Run database seeds
+make test         # Run tests
+make lint         # Lint code
+make lint:fix     # Auto-fix linting
+```
 
 ### "Docker daemon is not running"
 

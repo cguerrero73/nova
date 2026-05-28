@@ -19,7 +19,7 @@ We will use npm workspaces in a single repository with this structure:
 ```
 nova/
 ├── frontend/        # Angular application
-├── backend/         # Fastify API
+├── backend/         # Go + Fiber API
 ├── docs/            # Project documentation
 └── package.json     # Root package with workspaces
 ```

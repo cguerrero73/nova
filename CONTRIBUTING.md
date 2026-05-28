@@ -130,11 +130,9 @@ docs(api): add endpoint documentation
 
 ## Testing
 
-- Backend: Jest
+- Backend: Go testing (built-in)
 - Frontend: Jest + Testing Library
-- Minimum coverage: 80%
-
-Run tests: `make test`
+- Run tests: `make test`
 
 ## Documentation
 
