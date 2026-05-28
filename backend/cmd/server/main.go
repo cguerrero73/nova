@@ -13,18 +13,8 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
 	"github.com/nova/backend/internal/config"
-	"github.com/nova/backend/internal/domain/auth"
-	"github.com/nova/backend/internal/domain/events"
-	"github.com/nova/backend/internal/domain/objects"
-	"github.com/nova/backend/internal/domain/organizations"
-	"github.com/nova/backend/internal/domain/parts"
-	"github.com/nova/backend/internal/domain/stocks"
-	"github.com/nova/backend/internal/domain/stores"
-	"github.com/nova/backend/internal/domain/structure"
-	"github.com/nova/backend/internal/domain/syscodes"
-	"github.com/nova/backend/internal/domain/users"
-	"github.com/nova/backend/internal/infrastructure/db"
 	"github.com/nova/backend/internal/infrastructure/middleware"
+	"github.com/nova/backend/internal/infrastructure/wire"
 )
 
 func main() {
@@ -35,20 +25,16 @@ func main() {
 	}
 
 	// Initialize database
-	database, err := db.NewPostgresDB(db.DatabaseConfig{
-		Host:     cfg.Database.Host,
-		Port:     cfg.Database.Port,
-		User:     cfg.Database.User,
-		Password: cfg.Database.Password,
-		Database: cfg.Database.Database,
-		Schema:   cfg.Database.Schema,
-	})
+	database, err := wire.InitializeDB(cfg)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer database.Close()
 
 	log.Println("Connected to database")
+
+	// Wire dependencies
+	c := wire.NewContainer(database.Pool, cfg)
 
 	// Initialize Fiber app
 	app := fiber.New(fiber.Config{
@@ -72,45 +58,6 @@ func main() {
 	tenantMiddleware := middleware.NewTenantMiddleware()
 	app.Use(tenantMiddleware.ExtractTenant())
 
-	// Initialize repositories with pgx
-	userRepo := users.NewPgUserRepository(database.Pool)
-	authUserRepo := auth.NewPgUserRepository(database.Pool)
-	sessionRepo := auth.NewPgSessionRepository(database.Pool)
-	orgRepo := organizations.NewPgOrganizationRepository(database.Pool)
-	objectRepo := objects.NewPgObjectRepository(database.Pool)
-	structureRepo := structure.NewPgStructureRepository(database.Pool)
-	partRepo := parts.NewPgPartRepository(database.Pool)
-	storeRepo := stores.NewPgStoreRepository(database.Pool)
-	binRepo := stores.NewPgBinRepository(database.Pool)
-	stockRepo := stocks.NewPgStockRepository(database.Pool)
-	binStockRepo := stocks.NewPgBinStockRepository(database.Pool)
-	eventRepo := events.NewPgEventRepository(database.Pool)
-	syscodeRepo := syscodes.NewPgSysCodeRepository(database.Pool)
-
-	// Initialize services
-	authService := auth.NewAuthService(authUserRepo, sessionRepo, cfg.JWT)
-	userService := users.NewUserService(userRepo)
-	orgService := organizations.NewOrganizationService(orgRepo)
-	objectService := objects.NewObjectService(objectRepo)
-	structureService := structure.NewStructureService(structureRepo)
-	partService := parts.NewPartService(partRepo)
-	storeService := stores.NewStoreService(storeRepo, binRepo)
-	stockService := stocks.NewStockService(stockRepo, binStockRepo)
-	eventService := events.NewEventService(eventRepo)
-	syscodeService := syscodes.NewSysCodeService(syscodeRepo)
-
-	// Initialize handlers
-	authHandler := auth.NewAuthHandler(authService)
-	userHandler := users.NewUserHandler(userService)
-	orgHandler := organizations.NewOrganizationHandler(orgService)
-	objectHandler := objects.NewObjectHandler(objectService)
-	structureHandler := structure.NewStructureHandler(structureService)
-	partHandler := parts.NewPartHandler(partService)
-	storeHandler := stores.NewStoreHandler(storeService)
-	stockHandler := stocks.NewStockHandler(stockService)
-	eventHandler := events.NewEventHandler(eventService)
-	syscodeHandler := syscodes.NewSysCodeHandler(syscodeService)
-
 	// Auth middleware
 	authMw := middleware.NewAuthMiddleware(cfg.JWT)
 
@@ -119,107 +66,107 @@ func main() {
 
 	// Public routes (no auth required)
 	authGroup := api.Group("/auth")
-	authGroup.Post("/login", authHandler.Login)
-	authGroup.Post("/register", authHandler.Register)
-	authGroup.Post("/refresh", authHandler.Refresh)
+	authGroup.Post("/login", c.AuthHandler.Login)
+	authGroup.Post("/register", c.AuthHandler.Register)
+	authGroup.Post("/refresh", c.AuthHandler.Refresh)
 
 	// Protected routes (auth required)
 	protected := api.Group("", authMw.Authenticate())
 
 	// Auth routes requiring auth
-	protected.Post("/logout", authHandler.Logout)
-	protected.Get("/auth/me", authHandler.Me)
+	protected.Post("/logout", c.AuthHandler.Logout)
+	protected.Get("/auth/me", c.AuthHandler.Me)
 
 	// Users CRUD
 	usersGroup := protected.Group("/users")
-	usersGroup.Get("/", userHandler.List)
-	usersGroup.Get("/:id", userHandler.Get)
-	usersGroup.Post("/", userHandler.Create)
-	usersGroup.Put("/:id", userHandler.Update)
-	usersGroup.Delete("/:id", userHandler.Delete)
+	usersGroup.Get("/", c.UserHandler.List)
+	usersGroup.Get("/:id", c.UserHandler.Get)
+	usersGroup.Post("/", c.UserHandler.Create)
+	usersGroup.Put("/:id", c.UserHandler.Update)
+	usersGroup.Delete("/:id", c.UserHandler.Delete)
 
 	// Organizations CRUD
 	orgsGroup := protected.Group("/organizations")
-	orgsGroup.Get("/", orgHandler.List)
-	orgsGroup.Get("/:id", orgHandler.Get)
-	orgsGroup.Post("/", orgHandler.Create)
-	orgsGroup.Put("/:id", orgHandler.Update)
-	orgsGroup.Delete("/:id", orgHandler.Delete)
+	orgsGroup.Get("/", c.OrgHandler.List)
+	orgsGroup.Get("/:id", c.OrgHandler.Get)
+	orgsGroup.Post("/", c.OrgHandler.Create)
+	orgsGroup.Put("/:id", c.OrgHandler.Update)
+	orgsGroup.Delete("/:id", c.OrgHandler.Delete)
 
 	// Objects CRUD
 	objectsGroup := protected.Group("/objects")
-	objectsGroup.Get("/", objectHandler.List)
-	objectsGroup.Get("/:id", objectHandler.Get)
-	objectsGroup.Post("/", objectHandler.Create)
-	objectsGroup.Put("/:id", objectHandler.Update)
-	objectsGroup.Delete("/:id", objectHandler.Delete)
-	objectsGroup.Get("/:id/children", objectHandler.GetChildren)
+	objectsGroup.Get("/", c.ObjectHandler.List)
+	objectsGroup.Get("/:id", c.ObjectHandler.Get)
+	objectsGroup.Post("/", c.ObjectHandler.Create)
+	objectsGroup.Put("/:id", c.ObjectHandler.Update)
+	objectsGroup.Delete("/:id", c.ObjectHandler.Delete)
+	objectsGroup.Get("/:id/children", c.ObjectHandler.GetChildren)
 
 	// Structure CRUD
 	structureGroup := protected.Group("/structure")
-	structureGroup.Get("/", structureHandler.List)
-	structureGroup.Post("/", structureHandler.Create)
-	structureGroup.Put("/:id", structureHandler.Update)
-	structureGroup.Delete("/:id", structureHandler.Delete)
+	structureGroup.Get("/", c.StructureHandler.List)
+	structureGroup.Post("/", c.StructureHandler.Create)
+	structureGroup.Put("/:id", c.StructureHandler.Update)
+	structureGroup.Delete("/:id", c.StructureHandler.Delete)
 
 	// Parts CRUD
 	partsGroup := protected.Group("/parts")
-	partsGroup.Get("/", partHandler.List)
-	partsGroup.Get("/:id", partHandler.Get)
-	partsGroup.Post("/", partHandler.Create)
-	partsGroup.Put("/:id", partHandler.Update)
-	partsGroup.Delete("/:id", partHandler.Delete)
+	partsGroup.Get("/", c.PartHandler.List)
+	partsGroup.Get("/:id", c.PartHandler.Get)
+	partsGroup.Post("/", c.PartHandler.Create)
+	partsGroup.Put("/:id", c.PartHandler.Update)
+	partsGroup.Delete("/:id", c.PartHandler.Delete)
 
 	// Stores CRUD
 	storesGroup := protected.Group("/stores")
-	storesGroup.Get("/", storeHandler.List)
-	storesGroup.Get("/:id", storeHandler.Get)
-	storesGroup.Post("/", storeHandler.Create)
-	storesGroup.Put("/:id", storeHandler.Update)
-	storesGroup.Delete("/:id", storeHandler.Delete)
+	storesGroup.Get("/", c.StoreHandler.List)
+	storesGroup.Get("/:id", c.StoreHandler.Get)
+	storesGroup.Post("/", c.StoreHandler.Create)
+	storesGroup.Put("/:id", c.StoreHandler.Update)
+	storesGroup.Delete("/:id", c.StoreHandler.Delete)
 
 	// Stocks CRUD
 	stocksGroup := protected.Group("/stocks")
-	stocksGroup.Get("/", stockHandler.List)
-	stocksGroup.Get("/low-stock", stockHandler.GetLowStock)
-	stocksGroup.Get("/:id", stockHandler.Get)
-	stocksGroup.Post("/", stockHandler.Create)
-	stocksGroup.Put("/:id", stockHandler.Update)
-	stocksGroup.Delete("/:id", stockHandler.Delete)
-	stocksGroup.Post("/:id/adjust", stockHandler.AdjustQuantity)
+	stocksGroup.Get("/", c.StockHandler.List)
+	stocksGroup.Get("/low-stock", c.StockHandler.GetLowStock)
+	stocksGroup.Get("/:id", c.StockHandler.Get)
+	stocksGroup.Post("/", c.StockHandler.Create)
+	stocksGroup.Put("/:id", c.StockHandler.Update)
+	stocksGroup.Delete("/:id", c.StockHandler.Delete)
+	stocksGroup.Post("/:id/adjust", c.StockHandler.AdjustQuantity)
 
 	// Bin Stocks
 	binStocksGroup := protected.Group("/bin-stocks")
-	binStocksGroup.Get("/", stockHandler.ListBinStocks)
-	binStocksGroup.Post("/", stockHandler.CreateBinStock)
-	binStocksGroup.Put("/:id", stockHandler.UpdateBinStock)
-	binStocksGroup.Delete("/:id", stockHandler.DeleteBinStock)
+	binStocksGroup.Get("/", c.StockHandler.ListBinStocks)
+	binStocksGroup.Post("/", c.StockHandler.CreateBinStock)
+	binStocksGroup.Put("/:id", c.StockHandler.UpdateBinStock)
+	binStocksGroup.Delete("/:id", c.StockHandler.DeleteBinStock)
 
 	// Events CRUD
 	eventsGroup := protected.Group("/events")
-	eventsGroup.Get("/", eventHandler.List)
-	eventsGroup.Get("/:id", eventHandler.Get)
-	eventsGroup.Post("/", eventHandler.Create)
-	eventsGroup.Put("/:id", eventHandler.Update)
-	eventsGroup.Delete("/:id", eventHandler.Delete)
-	eventsGroup.Get("/object/:code/:org", eventHandler.GetByObject)
-	eventsGroup.Put("/:id/status", eventHandler.UpdateStatus)
+	eventsGroup.Get("/", c.EventHandler.List)
+	eventsGroup.Get("/:id", c.EventHandler.Get)
+	eventsGroup.Post("/", c.EventHandler.Create)
+	eventsGroup.Put("/:id", c.EventHandler.Update)
+	eventsGroup.Delete("/:id", c.EventHandler.Delete)
+	eventsGroup.Get("/object/:code/:org", c.EventHandler.GetByObject)
+	eventsGroup.Put("/:id/status", c.EventHandler.UpdateStatus)
 
 	// SysCodes CRUD
 	syscodesGroup := protected.Group("/syscodes")
-	syscodesGroup.Get("/", syscodeHandler.List)
-	syscodesGroup.Get("/:id", syscodeHandler.Get)
-	syscodesGroup.Post("/", syscodeHandler.Create)
-	syscodesGroup.Put("/:id", syscodeHandler.Update)
-	syscodesGroup.Delete("/:id", syscodeHandler.Delete)
-	syscodesGroup.Get("/type/:type", syscodeHandler.GetByType)
+	syscodesGroup.Get("/", c.SyscodeHandler.List)
+	syscodesGroup.Get("/:id", c.SyscodeHandler.Get)
+	syscodesGroup.Post("/", c.SyscodeHandler.Create)
+	syscodesGroup.Put("/:id", c.SyscodeHandler.Update)
+	syscodesGroup.Delete("/:id", c.SyscodeHandler.Delete)
+	syscodesGroup.Get("/type/:type", c.SyscodeHandler.GetByType)
 
 	// Graceful shutdown
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		<-c
+		<-shutdown
 		log.Println("Gracefully shutting down...")
 		_ = app.Shutdown()
 	}()
