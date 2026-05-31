@@ -7,6 +7,7 @@ import { routes } from './app/app.routes';
 import { environment } from './environments/environment';
 import { languageInterceptor } from './app/core/interceptors/language.interceptor';
 import { errorInterceptor } from './app/core/interceptors/error.interceptor';
+import { authInterceptor } from './app/core/interceptors/auth.interceptor';
 import { tenantInterceptor } from './app/core/interceptors/tenant.interceptor';
 
 async function bootstrap() {
@@ -24,7 +25,7 @@ async function bootstrap() {
     providers: [
       provideRouter(routes),
       provideHttpClient(
-        withInterceptors([tenantInterceptor, languageInterceptor, errorInterceptor])
+        withInterceptors([authInterceptor, tenantInterceptor, languageInterceptor, errorInterceptor])
       ),
       provideAnimations(),
     ],
