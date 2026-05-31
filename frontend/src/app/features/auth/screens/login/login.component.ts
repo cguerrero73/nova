@@ -54,7 +54,7 @@ export class LoginComponent implements OnInit {
           })
           .toPromise();
 
-        this.router.navigate(['/users']);
+        this.router.navigate(['/dashboard']);
       } else {
         await this.authService
           .register({
@@ -64,7 +64,7 @@ export class LoginComponent implements OnInit {
           })
           .toPromise();
 
-        this.router.navigate(['/users']);
+        this.router.navigate(['/dashboard']);
       }
     } catch (error: unknown) {
       // Manejar error de HTTP — soporta dos formatos:

@@ -21,7 +21,7 @@ export const loginGuard: CanActivateFn = () => {
     return true;
   }
 
-  router.navigate(['/users']);
+  router.navigate(['/dashboard']);
   return false;
 };
 
@@ -33,6 +33,6 @@ export const adminGuard: CanActivateFn = () => {
     return true;
   }
 
-  router.navigate(['/users']);
+  router.navigate(['/dashboard']);
   return false;
 };

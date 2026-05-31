@@ -70,6 +70,8 @@ func main() {
 	authGroup.Post("/register", c.AuthHandler.Register)
 	authGroup.Post("/refresh", c.AuthHandler.Refresh)
 
+	api.Get("/screens/:screenId", c.ScreenHandler.GetTranslations)
+
 	// Protected routes (auth required)
 	protected := api.Group("", authMw.Authenticate())
 
@@ -141,6 +143,10 @@ func main() {
 	binStocksGroup.Post("/", c.StockHandler.CreateBinStock)
 	binStocksGroup.Put("/:id", c.StockHandler.UpdateBinStock)
 	binStocksGroup.Delete("/:id", c.StockHandler.DeleteBinStock)
+
+	// Queries
+	protected.Get("/queries", c.QueriesHandler.List)
+	protected.Post("/grid/data", c.GridHandler.ExecuteQuery)
 
 	// Events CRUD
 	eventsGroup := protected.Group("/events")

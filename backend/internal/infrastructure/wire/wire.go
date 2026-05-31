@@ -9,9 +9,12 @@ import (
 	// API adapters (HTTP handlers)
 	authapi "github.com/nova/backend/internal/adapters/api/auth"
 	eventsapi "github.com/nova/backend/internal/adapters/api/events"
+	gridapi "github.com/nova/backend/internal/adapters/api/grid"
 	objectsapi "github.com/nova/backend/internal/adapters/api/objects"
 	orgsapi "github.com/nova/backend/internal/adapters/api/organizations"
 	partsapi "github.com/nova/backend/internal/adapters/api/parts"
+	queriesapi "github.com/nova/backend/internal/adapters/api/queries"
+	screensapi "github.com/nova/backend/internal/adapters/api/screens"
 	stocksapi "github.com/nova/backend/internal/adapters/api/stocks"
 	storesapi "github.com/nova/backend/internal/adapters/api/stores"
 	structureapi "github.com/nova/backend/internal/adapters/api/structure"
@@ -56,6 +59,11 @@ type Container struct {
 	StockHandler     *stocksapi.StockHandler
 	EventHandler     *eventsapi.EventHandler
 	SyscodeHandler   *syscodesapi.SysCodeHandler
+
+	// Stub handlers (no domain dependencies)
+	ScreenHandler  *screensapi.ScreenHandler
+	QueriesHandler *queriesapi.QueriesHandler
+	GridHandler    *gridapi.GridHandler
 }
 
 // NewContainer wires all dependencies
@@ -89,6 +97,9 @@ func NewContainer(pool *pgxpool.Pool, cfg *config.Config) *Container {
 
 	// API adapters (handlers)
 	return &Container{
+		ScreenHandler:  screensapi.NewScreenHandler(),
+		QueriesHandler: queriesapi.NewQueriesHandler(),
+		GridHandler:    gridapi.NewGridHandler(),
 		AuthHandler:      authapi.NewAuthHandler(authService),
 		UserHandler:      usersapi.NewUserHandler(userService),
 		OrgHandler:       orgsapi.NewOrganizationHandler(orgService),

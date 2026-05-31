@@ -25,7 +25,12 @@ async function bootstrap() {
     providers: [
       provideRouter(routes),
       provideHttpClient(
-        withInterceptors([authInterceptor, tenantInterceptor, languageInterceptor, errorInterceptor])
+        withInterceptors([
+          authInterceptor,
+          tenantInterceptor,
+          languageInterceptor,
+          errorInterceptor,
+        ])
       ),
       provideAnimations(),
     ],
