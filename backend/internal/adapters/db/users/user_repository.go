@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	infraDB "github.com/nova/backend/internal/infrastructure/db"
 
 	"github.com/nova/backend/internal/domain/users"
 )
@@ -27,7 +28,7 @@ func (r *PgUserRepository) FindByID(ctx context.Context, id string) (*users.User
 		FROM eamusers WHERE usr_id = $1`
 
 	var user users.User
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, id).Scan(
 		&user.ID, &user.Code, &user.Name, &user.Email, &user.Password, &user.Phone,
 		&user.Status, &user.DefaultOrg, &user.NotUsed, &user.TenantID,
 		&user.CreatedAt, &user.UpdatedAt, &user.CreatedBy, &user.UpdatedBy,
@@ -46,7 +47,7 @@ func (r *PgUserRepository) FindByCode(ctx context.Context, code string) (*users.
 		FROM eamusers WHERE usr_code = $1`
 
 	var user users.User
-	err := r.pool.QueryRow(ctx, query, code).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, code).Scan(
 		&user.ID, &user.Code, &user.Name, &user.Email, &user.Password, &user.Phone,
 		&user.Status, &user.DefaultOrg, &user.NotUsed, &user.TenantID,
 		&user.CreatedAt, &user.UpdatedAt, &user.CreatedBy, &user.UpdatedBy,
@@ -65,7 +66,7 @@ func (r *PgUserRepository) FindByEmail(ctx context.Context, email string) (*user
 		FROM eamusers WHERE usr_email = $1`
 
 	var user users.User
-	err := r.pool.QueryRow(ctx, query, email).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, email).Scan(
 		&user.ID, &user.Code, &user.Name, &user.Email, &user.Password, &user.Phone,
 		&user.Status, &user.DefaultOrg, &user.NotUsed, &user.TenantID,
 		&user.CreatedAt, &user.UpdatedAt, &user.CreatedBy, &user.UpdatedBy,
@@ -79,7 +80,7 @@ func (r *PgUserRepository) FindByEmail(ctx context.Context, email string) (*user
 func (r *PgUserRepository) FindAll(ctx context.Context, tenantID string, limit, offset int) ([]*users.User, int, error) {
 	countQuery := `SELECT COUNT(*) FROM eamusers WHERE usr_tenant_id = $1`
 	var total int
-	if err := r.pool.QueryRow(ctx, countQuery, tenantID).Scan(&total); err != nil {
+	if err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, countQuery, tenantID).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
@@ -92,7 +93,7 @@ func (r *PgUserRepository) FindAll(ctx context.Context, tenantID string, limit, 
 		ORDER BY usr_created_at DESC
 		LIMIT $2 OFFSET $3`
 
-	rows, err := r.pool.Query(ctx, query, tenantID, limit, offset)
+	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, tenantID, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -123,7 +124,7 @@ func (r *PgUserRepository) Create(ctx context.Context, user *users.User) error {
 		                      usr_created_by, usr_updated_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
 
-	_, err := r.pool.Exec(ctx, query,
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query,
 		user.ID, user.Code, user.Name, user.Email, user.Password, user.Phone,
 		user.Status, user.DefaultOrg, user.NotUsed, user.TenantID,
 		user.CreatedAt, user.UpdatedAt, user.CreatedBy, user.UpdatedBy,
@@ -139,7 +140,7 @@ func (r *PgUserRepository) Update(ctx context.Context, user *users.User) error {
 		    usr_updated_by = $9
 		WHERE usr_id = $1`
 
-	_, err := r.pool.Exec(ctx, query,
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query,
 		user.ID, user.Name, user.Email, user.Phone, user.Status,
 		user.DefaultOrg, user.NotUsed, user.UpdatedAt, user.UpdatedBy,
 	)
@@ -148,6 +149,6 @@ func (r *PgUserRepository) Update(ctx context.Context, user *users.User) error {
 
 func (r *PgUserRepository) Delete(ctx context.Context, id string) error {
 	query := `UPDATE eamusers SET usr_notused = '+', usr_updated_at = $2 WHERE usr_id = $1`
-	_, err := r.pool.Exec(ctx, query, id, time.Now())
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query, id, time.Now())
 	return err
 }

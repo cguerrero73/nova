@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -27,19 +28,32 @@ func NewAuthService(userRepo UserRepository, sessionRepo SessionRepository, jwtC
 }
 
 func (s *AuthService) Login(ctx context.Context, req *LoginRequest) (*AuthResponse, error) {
+	log.Printf("[AuthService] Login: buscando email=%s", req.Email)
+
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
+		log.Printf("[AuthService] FindByEmail error: %v", err)
 		if errors.Is(err, context.Canceled) {
 			return nil, apperrors.ErrInternal
 		}
 		return nil, apperrors.ErrInvalidCredentials()
 	}
 
+	log.Printf("[AuthService] Usuario encontrado: code=%s, verificando password", user.Code)
+
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		log.Printf("[AuthService] Password incorrecto")
 		return nil, apperrors.ErrInvalidCredentials()
 	}
 
-	return s.generateAuthResponse(ctx, user)
+	log.Printf("[AuthService] Password OK, generando respuesta")
+	resp, err := s.generateAuthResponse(ctx, user)
+	if err != nil {
+		log.Printf("[AuthService] generateAuthResponse error: %v", err)
+		return nil, err
+	}
+	log.Printf("[AuthService] Login exitoso para %s", user.Code)
+	return resp, nil
 }
 
 func (s *AuthService) Register(ctx context.Context, req *RegisterRequest) (*AuthResponse, error) {
@@ -53,13 +67,14 @@ func (s *AuthService) Register(ctx context.Context, req *RegisterRequest) (*Auth
 		return nil, apperrors.ErrInternal
 	}
 
+	tenant := req.Tenant
 	user := &User{
 		Code:      generateCode(),
 		Name:      req.Name,
 		Email:     req.Email,
 		Password:  string(hashedPassword),
 		Status:    "active",
-		TenantID:  req.Tenant,
+		TenantID:  &tenant,
 		CreatedAt: time.Now(),
 	}
 
@@ -102,8 +117,10 @@ func (s *AuthService) GetUserByCode(ctx context.Context, code string) (*User, er
 }
 
 func (s *AuthService) generateAuthResponse(ctx context.Context, user *User) (*AuthResponse, error) {
+	log.Printf("[AuthService] generateAuthResponse: generando access token")
 	accessToken, err := s.generateAccessToken(user)
 	if err != nil {
+		log.Printf("[AuthService] generateAccessToken error: %v", err)
 		return nil, apperrors.ErrInternal
 	}
 
@@ -117,10 +134,13 @@ func (s *AuthService) generateAuthResponse(ctx context.Context, user *User) (*Au
 		CreatedAt:    time.Now(),
 	}
 
+	log.Printf("[AuthService] guardando sesion para user=%s", user.Code)
 	if err := s.sessionRepo.Create(ctx, session); err != nil {
+		log.Printf("[AuthService] sessionRepo.Create error: %v", err)
 		return nil, apperrors.ErrInternal
 	}
 
+	log.Printf("[AuthService] login completado exitosamente")
 	return &AuthResponse{
 		User:         user,
 		AccessToken:  accessToken,
@@ -130,11 +150,16 @@ func (s *AuthService) generateAuthResponse(ctx context.Context, user *User) (*Au
 }
 
 func (s *AuthService) generateAccessToken(user *User) (string, error) {
+	tenant := ""
+	if user.TenantID != nil {
+		tenant = *user.TenantID
+	}
+
 	claims := TokenClaims{
 		UserCode: user.Code,
 		Email:    user.Email,
 		Name:     user.Name,
-		Tenant:   user.TenantID,
+		Tenant:   tenant,
 		Roles:    []string{}, // TODO: fetch roles
 	}
 

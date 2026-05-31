@@ -70,6 +70,7 @@ func (u *User) IsActive() bool {
 ```
 
 Reglas:
+
 - Un archivo por entidad
 - Métodos de negocio _sobre_ la entidad (receiver)
 - Sin dependencias externas
@@ -95,6 +96,7 @@ type UserRepository interface {
 ```
 
 Reglas:
+
 - Cada método recibe `context.Context` como primer parámetro
 - Usar tipos del domain (`*User`), nunca tipos de adapter
 - `FindAll` devuelve `([]*T, int, error)` — el `int` es el total para paginación
@@ -125,6 +127,7 @@ type UpdateUserRequest struct {
 ```
 
 Reglas:
+
 - No reutilizar la entidad como request — siempre un DTO separado
 - Tags `validate` para validación
 - Campos opcionales son zero-value por defecto
@@ -219,6 +222,7 @@ func (s *UserService) Delete(ctx context.Context, id string) error {
 ```
 
 Patrón de cada método:
+
 1. **Validar** — reglas de negocio, existencia, permisos
 2. **Operar** — transformar, calcular, mergear
 3. **Persistir** — llamar al repo
@@ -320,13 +324,13 @@ func (h *UserHandler) Delete(c *fiber.Ctx) error {
 
 Endpoint estándar por entidad:
 
-| Método | Ruta              | Handler     | Descripción          |
-|--------|-------------------|-------------|----------------------|
-| GET    | `/{entity}`       | List        | Listar con paginación |
-| GET    | `/{entity}/:id`   | Get         | Obtener por ID       |
-| POST   | `/{entity}`       | Create      | Crear nuevo          |
-| PUT    | `/{entity}/:id`   | Update      | Actualizar parcial   |
-| DELETE | `/{entity}/:id`   | Delete      | Borrado lógico       |
+| Método | Ruta            | Handler | Descripción           |
+| ------ | --------------- | ------- | --------------------- |
+| GET    | `/{entity}`     | List    | Listar con paginación |
+| GET    | `/{entity}/:id` | Get     | Obtener por ID        |
+| POST   | `/{entity}`     | Create  | Crear nuevo           |
+| PUT    | `/{entity}/:id` | Update  | Actualizar parcial    |
+| DELETE | `/{entity}/:id` | Delete  | Borrado lógico        |
 
 ### 3.2 `adapters/db/<entidad>/<entidad>_repository.go`
 
@@ -364,6 +368,7 @@ func (r *PgUserRepository) FindByID(ctx context.Context, id string) (*users.User
 ```
 
 Reglas:
+
 - `package db`
 - `pgx.ErrNoRows` → devolver `nil, nil` (no es error)
 - Nombres de tablas con prefijo `eam` (`eamusers`, `eamstores`, etc.)
@@ -481,6 +486,7 @@ export class UserService {
 Componente standalone con signals y TanStack Table.
 
 Estructura del template:
+
 ```
 ToolbarComponent (compartido)
 ├── create, delete, refresh, print, prev/next
@@ -526,10 +532,16 @@ this.columns = [
   { accessorKey: 'id', header: 'ID', size: 80 },
   { accessorKey: 'name', header: 'Nombre', size: 200 },
   { accessorKey: 'email', header: 'Email' },
-  { accessorKey: 'status', header: 'Estado',
-    cell: info => status === 'active' ? 'Activo' : 'Inactivo' },
-  { accessorKey: 'createdAt', header: 'Fecha Creación',
-    cell: info => new Date(info.getValue()).toLocaleDateString() },
+  {
+    accessorKey: 'status',
+    header: 'Estado',
+    cell: info => (status === 'active' ? 'Activo' : 'Inactivo'),
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Fecha Creación',
+    cell: info => new Date(info.getValue()).toLocaleDateString(),
+  },
 ];
 ```
 
@@ -563,6 +575,7 @@ En `app.routes.ts`, lazy loading:
 ## 8. Checklist rápida
 
 ### Backend
+
 - [ ] `domain/<ent>/entity.go` — struct + métodos de negocio
 - [ ] `domain/<ent>/ports.go` — interface del repositorio
 - [ ] `domain/<ent>/dto.go` — request/response
@@ -574,6 +587,7 @@ En `app.routes.ts`, lazy loading:
 - [ ] `go build ./...` — compila
 
 ### Frontend
+
 - [ ] `features/<ent>/models/<ent>.model.ts` — interfaces TS
 - [ ] `features/<ent>/services/<ent>.service.ts` — signals + API calls
 - [ ] `features/<ent>/screens/<ent>-list/` — grid + toolbar + drawer
@@ -582,6 +596,7 @@ En `app.routes.ts`, lazy loading:
 - [ ] `pnpm start` — compila sin errores
 
 ### Base de datos
+
 - [ ] Migración UP en `migrations/tenant/`
 - [ ] Migración DOWN en `migrations/tenant/`
 - [ ] Seed data si aplica en `migrations/tenant/`

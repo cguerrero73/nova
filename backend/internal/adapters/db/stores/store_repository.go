@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	infraDB "github.com/nova/backend/internal/infrastructure/db"
 
 	"github.com/nova/backend/internal/domain/stores"
 )
@@ -25,7 +26,7 @@ func (r *pgStoreRepository) FindByID(ctx context.Context, id string) (*stores.St
 		FROM eamstores WHERE str_id = $1`
 
 	var s stores.Store
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, id).Scan(
 		&s.ID, &s.Code, &s.Name, &s.Desc, &s.Org, &s.NotUsed,
 		&s.TenantID, &s.CreatedAt, &s.UpdatedAt,
 	)
@@ -42,7 +43,7 @@ func (r *pgStoreRepository) FindByCode(ctx context.Context, code string) (*store
 		FROM eamstores WHERE str_code = $1`
 
 	var s stores.Store
-	err := r.pool.QueryRow(ctx, query, code).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, code).Scan(
 		&s.ID, &s.Code, &s.Name, &s.Desc, &s.Org, &s.NotUsed,
 		&s.TenantID, &s.CreatedAt, &s.UpdatedAt,
 	)
@@ -65,7 +66,7 @@ func (r *pgStoreRepository) FindAll(ctx context.Context, tenantID string, org st
 	}
 	query += ` ORDER BY str_code ASC`
 
-	rows, err := r.pool.Query(ctx, query, args...)
+	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +98,7 @@ func (r *pgStoreRepository) Create(ctx context.Context, s *stores.Store) error {
 		                        str_notused, str_tenant_id, str_created_at, str_updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
-	_, err := r.pool.Exec(ctx, query,
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query,
 		s.ID, s.Code, s.Name, s.Desc, s.Org, s.NotUsed,
 		s.TenantID, s.CreatedAt, s.UpdatedAt,
 	)
@@ -110,13 +111,13 @@ func (r *pgStoreRepository) Update(ctx context.Context, s *stores.Store) error {
 		SET str_name = $2, str_desc = $3, str_notused = $4, str_updated_at = $5
 		WHERE str_id = $1`
 
-	_, err := r.pool.Exec(ctx, query, s.ID, s.Name, s.Desc, s.NotUsed, s.UpdatedAt)
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query, s.ID, s.Name, s.Desc, s.NotUsed, s.UpdatedAt)
 	return err
 }
 
 func (r *pgStoreRepository) Delete(ctx context.Context, id string) error {
 	query := `UPDATE eamstores SET str_notused = '+' WHERE str_id = $1`
-	_, err := r.pool.Exec(ctx, query, id)
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query, id)
 	return err
 }
 
@@ -135,7 +136,7 @@ func (r *pgBinRepository) FindByID(ctx context.Context, id string) (*stores.Bin,
 		FROM eambins WHERE bin_id = $1`
 
 	var b stores.Bin
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, id).Scan(
 		&b.ID, &b.Code, &b.Desc, &b.Org, &b.NotUsed,
 		&b.TenantID, &b.CreatedAt, &b.UpdatedAt,
 	)
@@ -152,7 +153,7 @@ func (r *pgBinRepository) FindByCode(ctx context.Context, code, org string) (*st
 		FROM eambins WHERE bin_code = $1 AND bin_org = $2`
 
 	var b stores.Bin
-	err := r.pool.QueryRow(ctx, query, code, org).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, code, org).Scan(
 		&b.ID, &b.Code, &b.Desc, &b.Org, &b.NotUsed,
 		&b.TenantID, &b.CreatedAt, &b.UpdatedAt,
 	)
@@ -175,7 +176,7 @@ func (r *pgBinRepository) FindAll(ctx context.Context, tenantID string, org stri
 	}
 	query += ` ORDER BY bin_code ASC`
 
-	rows, err := r.pool.Query(ctx, query, args...)
+	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +208,7 @@ func (r *pgBinRepository) Create(ctx context.Context, b *stores.Bin) error {
 		                      bin_notused, bin_tenant_id, bin_created_at, bin_updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
-	_, err := r.pool.Exec(ctx, query,
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query,
 		b.ID, b.Code, b.Desc, b.Org, b.NotUsed,
 		b.TenantID, b.CreatedAt, b.UpdatedAt,
 	)
@@ -220,12 +221,12 @@ func (r *pgBinRepository) Update(ctx context.Context, b *stores.Bin) error {
 		SET bin_desc = $2, bin_notused = $3, bin_updated_at = $4
 		WHERE bin_id = $1`
 
-	_, err := r.pool.Exec(ctx, query, b.ID, b.Desc, b.NotUsed, b.UpdatedAt)
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query, b.ID, b.Desc, b.NotUsed, b.UpdatedAt)
 	return err
 }
 
 func (r *pgBinRepository) Delete(ctx context.Context, id string) error {
 	query := `UPDATE eambins SET bin_notused = '+' WHERE bin_id = $1`
-	_, err := r.pool.Exec(ctx, query, id)
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query, id)
 	return err
 }

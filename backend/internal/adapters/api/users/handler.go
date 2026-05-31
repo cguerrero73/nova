@@ -5,6 +5,7 @@ import (
 
 	"github.com/nova/backend/internal/domain/users"
 	"github.com/nova/backend/internal/handler/dto"
+	"github.com/nova/backend/internal/infrastructure/middleware"
 	"github.com/nova/backend/pkg/errors"
 )
 
@@ -17,9 +18,9 @@ func NewUserHandler(service *users.UserService) *UserHandler {
 }
 
 func (h *UserHandler) List(c *fiber.Ctx) error {
-	tenant := c.Locals("tenant").(string)
+	tenant := middleware.GetTenant(c)
 	if tenant == "" {
-		return c.Status(400).JSON(errors.ErrTenantRequired)
+		return c.Status(400).JSON(errors.ErrTenantRequired())
 	}
 
 	pagination := dto.PaginationQuery{
@@ -49,9 +50,9 @@ func (h *UserHandler) Get(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) Create(c *fiber.Ctx) error {
-	tenant := c.Locals("tenant").(string)
+	tenant := middleware.GetTenant(c)
 	if tenant == "" {
-		return c.Status(400).JSON(errors.ErrTenantRequired)
+		return c.Status(400).JSON(errors.ErrTenantRequired())
 	}
 
 	var req users.CreateUserRequest

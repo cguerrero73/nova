@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	infraDB "github.com/nova/backend/internal/infrastructure/db"
 
 	"github.com/nova/backend/internal/domain/syscodes"
 )
@@ -25,7 +26,7 @@ func (r *PgSysCodeRepository) FindByID(ctx context.Context, id string) (*syscode
 		FROM eamsyscodes WHERE sys_id = $1`
 
 	var s syscodes.SysCode
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, id).Scan(
 		&s.ID, &s.Type, &s.Code, &s.UCode, &s.Desc, &s.System,
 		&s.NotUsed, &s.CreatedAt, &s.UpdatedAt,
 	)
@@ -42,7 +43,7 @@ func (r *PgSysCodeRepository) FindByTypeAndCode(ctx context.Context, codeType, c
 		FROM eamsyscodes WHERE sys_type = $1 AND sys_code = $2`
 
 	var s syscodes.SysCode
-	err := r.pool.QueryRow(ctx, query, codeType, code).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, codeType, code).Scan(
 		&s.ID, &s.Type, &s.Code, &s.UCode, &s.Desc, &s.System,
 		&s.NotUsed, &s.CreatedAt, &s.UpdatedAt,
 	)
@@ -59,7 +60,7 @@ func (r *PgSysCodeRepository) FindByType(ctx context.Context, codeType string) (
 		FROM eamsyscodes WHERE sys_type = $1
 		ORDER BY sys_code ASC`
 
-	rows, err := r.pool.Query(ctx, query, codeType)
+	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, codeType)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +89,7 @@ func (r *PgSysCodeRepository) FindByUCode(ctx context.Context, ucode string) (*s
 		FROM eamsyscodes WHERE sys_ucode = $1`
 
 	var s syscodes.SysCode
-	err := r.pool.QueryRow(ctx, query, ucode).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, ucode).Scan(
 		&s.ID, &s.Type, &s.Code, &s.UCode, &s.Desc, &s.System,
 		&s.NotUsed, &s.CreatedAt, &s.UpdatedAt,
 	)
@@ -105,7 +106,7 @@ func (r *PgSysCodeRepository) FindAll(ctx context.Context) ([]*syscodes.SysCode,
 		FROM eamsyscodes
 		ORDER BY sys_type ASC, sys_code ASC`
 
-	rows, err := r.pool.Query(ctx, query)
+	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +134,7 @@ func (r *PgSysCodeRepository) Create(ctx context.Context, s *syscodes.SysCode) e
 		                         sys_system, sys_notused, sys_created_at, sys_updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
-	_, err := r.pool.Exec(ctx, query,
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query,
 		s.ID, s.Type, s.Code, s.UCode, s.Desc,
 		s.System, s.NotUsed, s.CreatedAt, s.UpdatedAt,
 	)
@@ -146,12 +147,12 @@ func (r *PgSysCodeRepository) Update(ctx context.Context, s *syscodes.SysCode) e
 		SET sys_ucode = $2, sys_desc = $3, sys_notused = $4, sys_updated_at = $5
 		WHERE sys_id = $1`
 
-	_, err := r.pool.Exec(ctx, query, s.ID, s.UCode, s.Desc, s.NotUsed, s.UpdatedAt)
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query, s.ID, s.UCode, s.Desc, s.NotUsed, s.UpdatedAt)
 	return err
 }
 
 func (r *PgSysCodeRepository) Delete(ctx context.Context, id string) error {
 	query := `UPDATE eamsyscodes SET sys_notused = '+' WHERE sys_id = $1`
-	_, err := r.pool.Exec(ctx, query, id)
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query, id)
 	return err
 }

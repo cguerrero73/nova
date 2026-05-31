@@ -36,7 +36,7 @@ export class LoginComponent implements OnInit {
 
   ngOnInit() {
     // Cargar traducciones de login
-    this.translate.load('login').subscribe(translations => {
+    this.translate.load('login').subscribe((translations) => {
       this.t = translations;
     });
   }
@@ -47,33 +47,40 @@ export class LoginComponent implements OnInit {
 
     try {
       if (this.mode() === 'login') {
-        await this.authService.login({
-          email: this.email(),
-          password: this.password()
-        }).toPromise();
-        
+        await this.authService
+          .login({
+            email: this.email(),
+            password: this.password(),
+          })
+          .toPromise();
+
         this.router.navigate(['/users']);
       } else {
-        await this.authService.register({
-          email: this.email(),
-          password: this.password(),
-          name: this.name()
-        }).toPromise();
-        
+        await this.authService
+          .register({
+            email: this.email(),
+            password: this.password(),
+            name: this.name(),
+          })
+          .toPromise();
+
         this.router.navigate(['/users']);
       }
     } catch (error: unknown) {
-      // Manejar error de HTTP
-      const httpError = error as { status?: number; error?: { success?: boolean; error?: string } };
-      
+      // Manejar error de HTTP — soporta dos formatos:
+      // - AppError: {code: "...", message: "..."}
+      // - ApiResponse: {success: false, error: {message: "..."}}
+      const httpError = error as {
+        status?: number;
+        error?: { success?: boolean; error?: string; message?: string; code?: string };
+      };
+
+      const serverMsg = httpError.error?.message || httpError.error?.error || '';
+
       if (httpError.status === 401 || httpError.status === 400) {
-        // Error de credenciales del mock
-        this.errorMessage.set(this.t['error.credentials'] || httpError.error?.error || 'Credenciales inválidas');
-      } else if (httpError.error?.success === false) {
-        // Error del servidor con formato ApiResponse
-        this.errorMessage.set(httpError.error.error || 'Error de autenticación');
+        this.errorMessage.set(serverMsg || this.t['error.credentials'] || 'Credenciales inválidas');
       } else {
-        this.errorMessage.set(this.t['error.connection'] || 'Error de conexión');
+        this.errorMessage.set(serverMsg || this.t['error.connection'] || 'Error de conexión');
       }
     } finally {
       this.isLoading.set(false);

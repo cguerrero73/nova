@@ -45,16 +45,16 @@ func (s *UserService) Create(ctx context.Context, tenantID string, req *CreateUs
 
 	user := &User{
 		ID:         uuid.New().String(),
-		Code:      generateCode(),
-		Name:      req.Name,
-		Email:     req.Email,
-		Password:  string(hashedPassword),
-		Phone:     req.Phone,
-		Status:    "ACT",
-		DefaultOrg: req.DefaultOrg,
-		TenantID:  tenantID,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Code:       generateCode(),
+		Name:       req.Name,
+		Email:      req.Email,
+		Password:   string(hashedPassword),
+		Phone:      strPtr(req.Phone),
+		Status:     "ACT",
+		DefaultOrg: strPtr(req.DefaultOrg),
+		TenantID:   strPtr(tenantID),
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
 	}
 
 	if err := s.repo.Create(ctx, user); err != nil {
@@ -80,13 +80,13 @@ func (s *UserService) Update(ctx context.Context, id string, req *UpdateUserRequ
 		user.Email = req.Email
 	}
 	if req.Phone != "" {
-		user.Phone = req.Phone
+		user.Phone = strPtr(req.Phone)
 	}
 	if req.Status != "" {
 		user.Status = req.Status
 	}
 	if req.DefaultOrg != "" {
-		user.DefaultOrg = req.DefaultOrg
+		user.DefaultOrg = strPtr(req.DefaultOrg)
 	}
 	user.UpdatedAt = time.Now()
 
@@ -123,6 +123,13 @@ func (s *UserService) Authenticate(ctx context.Context, email, password string) 
 	}
 
 	return user, nil
+}
+
+func strPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 func generateCode() string {

@@ -7,22 +7,25 @@ import { routes } from './app/app.routes';
 import { environment } from './environments/environment';
 import { languageInterceptor } from './app/core/interceptors/language.interceptor';
 import { errorInterceptor } from './app/core/interceptors/error.interceptor';
+import { tenantInterceptor } from './app/core/interceptors/tenant.interceptor';
 
 async function bootstrap() {
   if (environment.useMock) {
     const { worker } = await import('./mocks/browser');
-    await worker.start({ 
+    await worker.start({
       onUnhandledRequest: 'bypass',
       serviceWorker: {
         url: '/mockServiceWorker.js',
-      }
+      },
     });
   }
 
   bootstrapApplication(AppComponent, {
     providers: [
       provideRouter(routes),
-      provideHttpClient(withInterceptors([languageInterceptor, errorInterceptor])),
+      provideHttpClient(
+        withInterceptors([tenantInterceptor, languageInterceptor, errorInterceptor])
+      ),
       provideAnimations(),
     ],
   }).catch((err) => console.error(err));

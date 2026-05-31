@@ -2,19 +2,19 @@ package users
 
 // CreateUserRequest represents a user creation request
 type CreateUserRequest struct {
-	Code       string `json:"usr_code"`
-	Name       string `json:"usr_name" validate:"required"`
-	Email      string `json:"usr_email" validate:"required,email"`
-	Password   string `json:"usr_password" validate:"required,min=8"`
-	Phone      string `json:"usr_phone"`
-	DefaultOrg string `json:"usr_default_org"`
+	Code       string `json:"code"`
+	Name       string `json:"name" validate:"required"`
+	Email      string `json:"email" validate:"required,email"`
+	Password   string `json:"password" validate:"required,min=8"`
+	Phone      string `json:"phone"`
+	DefaultOrg string `json:"defaultOrg"`
 }
 
 // UpdateUserRequest represents a user update request
 type UpdateUserRequest struct {
-	Name       string `json:"usr_name"`
-	Email      string `json:"usr_email" validate:"email"`
-	Phone      string `json:"usr_phone"`
-	Status     string `json:"usr_status"`
-	DefaultOrg string `json:"usr_default_org"`
+	Name       string `json:"name"`
+	Email      string `json:"email" validate:"email"`
+	Phone      string `json:"phone"`
+	Status     string `json:"status"`
+	DefaultOrg string `json:"defaultOrg"`
 }

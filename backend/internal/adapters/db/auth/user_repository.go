@@ -2,8 +2,10 @@ package db
 
 import (
 	"context"
+	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	infraDB "github.com/nova/backend/internal/infrastructure/db"
 
 	"github.com/nova/backend/internal/domain/auth"
 )
@@ -18,6 +20,8 @@ func NewPgUserRepository(pool *pgxpool.Pool) *PgUserRepository {
 }
 
 func (r *PgUserRepository) FindByEmail(ctx context.Context, email string) (*auth.User, error) {
+	log.Printf("[DB] FindByEmail: buscando usuario con email=%s", email)
+
 	query := `
 		SELECT usr_id, usr_code, usr_name, usr_email, usr_password, usr_phone, 
 		       usr_status, usr_default_org, usr_notused, usr_tenant_id,
@@ -25,14 +29,16 @@ func (r *PgUserRepository) FindByEmail(ctx context.Context, email string) (*auth
 		FROM eamusers WHERE usr_email = $1`
 
 	var user auth.User
-	err := r.pool.QueryRow(ctx, query, email).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, email).Scan(
 		&user.ID, &user.Code, &user.Name, &user.Email, &user.Password, &user.Phone,
 		&user.Status, &user.DefaultOrg, &user.NotUsed, &user.TenantID,
 		&user.CreatedAt, &user.UpdatedAt, &user.CreatedBy, &user.UpdatedBy,
 	)
 	if err != nil {
+		log.Printf("[DB] FindByEmail: ERROR - %v", err)
 		return nil, err
 	}
+	log.Printf("[DB] FindByEmail: encontrado user=%s status=%s", user.Code, user.Status)
 	return &user, nil
 }
 
@@ -44,7 +50,7 @@ func (r *PgUserRepository) FindByCode(ctx context.Context, code string) (*auth.U
 		FROM eamusers WHERE usr_code = $1`
 
 	var user auth.User
-	err := r.pool.QueryRow(ctx, query, code).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, code).Scan(
 		&user.ID, &user.Code, &user.Name, &user.Email, &user.Password, &user.Phone,
 		&user.Status, &user.DefaultOrg, &user.NotUsed, &user.TenantID,
 		&user.CreatedAt, &user.UpdatedAt, &user.CreatedBy, &user.UpdatedBy,
@@ -63,7 +69,7 @@ func (r *PgUserRepository) Create(ctx context.Context, user *auth.User) error {
 		                      usr_created_by, usr_updated_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
 
-	_, err := r.pool.Exec(ctx, query,
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query,
 		user.ID, user.Code, user.Name, user.Email, user.Password, user.Phone,
 		user.Status, user.DefaultOrg, user.NotUsed, user.TenantID,
 		user.CreatedAt, user.UpdatedAt, user.CreatedBy, user.UpdatedBy,

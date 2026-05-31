@@ -182,7 +182,7 @@ function executeGridQuery(gridId: number, query: GridQuery, page: number = 1): {
 
 export const handlers = [
   // GET /api/v1/users - método original (para compatibilidad)
-  http.get('/api/v1/users', async ({ request }) => {
+/*   http.get('/api/v1/users', async ({ request }) => {
     await delay(500);
     const url = new URL(request.url);
     const page = Number(url.searchParams.get('page')) || 1;
@@ -278,7 +278,7 @@ export const handlers = [
       success: true,
       data: null
     });
-  }),
+  }), */
 
   // POST /api/v1/grid/data - ejecutar query en el grid
   http.post('/api/v1/grid/data', async ({ request }) => {
@@ -438,7 +438,7 @@ export const handlers = [
   // ========== AUTH HANDLERS ==========
 
   // POST /api/v1/auth/login
-  http.post('/api/v1/auth/login', async ({ request }) => {
+/*   http.post('/api/v1/auth/login', async ({ request }) => {
     await delay(500);
     
     const body = await request.json() as { email: string; password: string };
@@ -469,7 +469,7 @@ export const handlers = [
       { status: 401 }
     );
   }),
-
+ */
   // POST /api/v1/auth/register
   http.post('/api/v1/auth/register', async ({ request }) => {
     await delay(500);

@@ -11,6 +11,11 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       let errorMessage = 'Error inesperado';
       let errorType: 'error' | 'warning' | 'info' = 'error';
 
+      // Extract server message supporting both formats:
+      // - flat:  {code: "...", message: "..."}        (AppError)
+      // - wrapped: {success: false, error: {code: "...", message: "..."}} (customErrorHandler)
+      const serverMsg = error.error?.error?.message || error.error?.message || '';
+
       if (error.error instanceof ErrorEvent) {
         // Error del cliente (network, etc)
         errorMessage = error.error.message;
@@ -22,39 +27,39 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
             errorType = 'warning';
             break;
           case 400:
-            errorMessage = error.error?.error?.message || 'Solicitud inválida';
+            errorMessage = serverMsg || 'Solicitud inválida';
             break;
           case 401:
-            errorMessage = 'Sesión expirada. Por favor inicie sesión nuevamente';
+            errorMessage = serverMsg || 'Sesión expirada. Por favor inicie sesión nuevamente';
             uiStore.logout();
             break;
           case 403:
-            errorMessage = 'No tiene permisos para realizar esta acción';
+            errorMessage = serverMsg || 'No tiene permisos para realizar esta acción';
             break;
           case 404:
-            errorMessage = 'Recurso no encontrado';
+            errorMessage = serverMsg || 'Recurso no encontrado';
             break;
           case 409:
-            errorMessage = error.error?.error?.message || 'Conflicto de datos';
+            errorMessage = serverMsg || 'Conflicto de datos';
             break;
           case 422:
-            errorMessage = error.error?.error?.message || 'Datos inválidos';
+            errorMessage = serverMsg || 'Datos inválidos';
             break;
           case 429:
-            errorMessage = 'Demasiadas solicitudes. Intente más tarde';
+            errorMessage = serverMsg || 'Demasiadas solicitudes. Intente más tarde';
             errorType = 'warning';
             break;
           case 500:
-            errorMessage = 'Error interno del servidor';
+            errorMessage = serverMsg || 'Error interno del servidor';
             break;
           case 502:
           case 503:
           case 504:
-            errorMessage = 'Servicio no disponible. Intente más tarde';
+            errorMessage = serverMsg || 'Servicio no disponible. Intente más tarde';
             errorType = 'warning';
             break;
           default:
-            errorMessage = error.error?.error?.message || `Error ${error.status}`;
+            errorMessage = serverMsg || `Error ${error.status}`;
         }
       }
 

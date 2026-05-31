@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/nova/backend/internal/domain/auth"
+	"github.com/nova/backend/internal/infrastructure/middleware"
 	"github.com/nova/backend/pkg/errors"
 )
 
@@ -16,9 +17,9 @@ func NewAuthHandler(authService *auth.AuthService) *AuthHandler {
 }
 
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
-	tenant := c.Locals("tenant").(string)
+	tenant := middleware.GetTenant(c)
 	if tenant == "" {
-		return c.Status(400).JSON(errors.ErrTenantRequired)
+		return c.Status(400).JSON(errors.ErrTenantRequired())
 	}
 
 	var req auth.LoginRequest
@@ -43,9 +44,9 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
-	tenant := c.Locals("tenant").(string)
+	tenant := middleware.GetTenant(c)
 	if tenant == "" {
-		return c.Status(400).JSON(errors.ErrTenantRequired)
+		return c.Status(400).JSON(errors.ErrTenantRequired())
 	}
 
 	var req auth.RegisterRequest
@@ -90,7 +91,10 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
-	user := c.Locals("user").(*auth.TokenClaims)
+	user := middleware.GetUserClaims(c)
+	if user == nil {
+		return c.Status(401).JSON(errors.ErrUnauthorized)
+	}
 
 	if err := h.authService.Logout(c.Context(), user.UserCode); err != nil {
 		return c.Status(500).JSON(errors.ErrInternal)
@@ -105,7 +109,10 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) Me(c *fiber.Ctx) error {
-	user := c.Locals("user").(*auth.TokenClaims)
+	user := middleware.GetUserClaims(c)
+	if user == nil {
+		return c.Status(401).JSON(errors.ErrUnauthorized)
+	}
 
 	// Get full user from service
 	resp, err := h.authService.GetUserByCode(c.Context(), user.UserCode)

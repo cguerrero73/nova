@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	infraDB "github.com/nova/backend/internal/infrastructure/db"
 
 	"github.com/nova/backend/internal/domain/events"
 )
@@ -26,7 +27,7 @@ func (r *pgEventRepository) FindByID(ctx context.Context, id string) (*events.Ev
 		FROM eamevents WHERE evt_id = $1`
 
 	var e events.Event
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, id).Scan(
 		&e.ID, &e.Code, &e.Org, &e.Desc, &e.Type, &e.RType, &e.Status,
 		&e.RStatus, &e.Object, &e.ObjectOrg, &e.NotUsed, &e.TenantID,
 		&e.CreatedAt, &e.UpdatedAt, &e.CreatedBy, &e.UpdatedBy,
@@ -45,7 +46,7 @@ func (r *pgEventRepository) FindByCode(ctx context.Context, code string) (*event
 		FROM eamevents WHERE evt_code = $1`
 
 	var e events.Event
-	err := r.pool.QueryRow(ctx, query, code).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, code).Scan(
 		&e.ID, &e.Code, &e.Org, &e.Desc, &e.Type, &e.RType, &e.Status,
 		&e.RStatus, &e.Object, &e.ObjectOrg, &e.NotUsed, &e.TenantID,
 		&e.CreatedAt, &e.UpdatedAt, &e.CreatedBy, &e.UpdatedBy,
@@ -66,7 +67,7 @@ func (r *pgEventRepository) FindAll(ctx context.Context, tenantID string, org st
 	}
 
 	var total int
-	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+	if err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
@@ -82,7 +83,7 @@ func (r *pgEventRepository) FindAll(ctx context.Context, tenantID string, org st
 	query += ` ORDER BY evt_created_at DESC LIMIT $3 OFFSET $4`
 	args = append(args, limit, offset)
 
-	rows, err := r.pool.Query(ctx, query, args...)
+	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, args...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -113,7 +114,7 @@ func (r *pgEventRepository) FindByOrg(ctx context.Context, org string) ([]*event
 		FROM eamevents WHERE evt_org = $1 AND evt_notused IS NULL
 		ORDER BY evt_code ASC`
 
-	rows, err := r.pool.Query(ctx, query, org)
+	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, org)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +144,7 @@ func (r *pgEventRepository) FindByObject(ctx context.Context, objectCode, object
 		       evt_created_at, evt_updated_at, evt_created_by, evt_updated_by
 		FROM eamevents WHERE evt_object = $1 AND evt_object_org = $2`
 
-	rows, err := r.pool.Query(ctx, query, objectCode, objectOrg)
+	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, objectCode, objectOrg)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +174,7 @@ func (r *pgEventRepository) FindByType(ctx context.Context, typeCode string) ([]
 		       evt_created_at, evt_updated_at, evt_created_by, evt_updated_by
 		FROM eamevents WHERE evt_type = $1`
 
-	rows, err := r.pool.Query(ctx, query, typeCode)
+	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, typeCode)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +204,7 @@ func (r *pgEventRepository) FindByStatus(ctx context.Context, status string) ([]
 		       evt_created_at, evt_updated_at, evt_created_by, evt_updated_by
 		FROM eamevents WHERE evt_status = $1`
 
-	rows, err := r.pool.Query(ctx, query, status)
+	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, status)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +235,7 @@ func (r *pgEventRepository) Create(ctx context.Context, e *events.Event) error {
 		                       evt_created_by, evt_updated_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`
 
-	_, err := r.pool.Exec(ctx, query,
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query,
 		e.ID, e.Code, e.Org, e.Desc, e.Type, e.RType, e.Status,
 		e.RStatus, e.Object, e.ObjectOrg, e.NotUsed, e.TenantID,
 		e.CreatedAt, e.UpdatedAt, e.CreatedBy, e.UpdatedBy,
@@ -250,7 +251,7 @@ func (r *pgEventRepository) Update(ctx context.Context, e *events.Event) error {
 		    evt_notused = $10, evt_updated_at = $11, evt_updated_by = $12
 		WHERE evt_id = $1`
 
-	_, err := r.pool.Exec(ctx, query,
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query,
 		e.ID, e.Org, e.Desc, e.Type, e.RType, e.Status,
 		e.RStatus, e.Object, e.ObjectOrg, e.NotUsed, e.UpdatedAt, e.UpdatedBy,
 	)
@@ -259,6 +260,6 @@ func (r *pgEventRepository) Update(ctx context.Context, e *events.Event) error {
 
 func (r *pgEventRepository) Delete(ctx context.Context, id string) error {
 	query := `UPDATE eamevents SET evt_notused = '+' WHERE evt_id = $1`
-	_, err := r.pool.Exec(ctx, query, id)
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query, id)
 	return err
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	infraDB "github.com/nova/backend/internal/infrastructure/db"
 
 	"github.com/nova/backend/internal/domain/objects"
 )
@@ -28,7 +29,7 @@ func (r *PgObjectRepository) FindByID(ctx context.Context, id string) (*objects.
 		FROM eamobjects WHERE obj_id = $1`
 
 	var obj objects.Object
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, id).Scan(
 		&obj.ID, &obj.Code, &obj.Type, &obj.Desc, &obj.Serial, &obj.Status,
 		&obj.Org, &obj.ParentCode, &obj.ParentOrg, &obj.InstallDate,
 		&obj.NotUsed, &obj.TenantID, &obj.CreatedAt, &obj.UpdatedAt,
@@ -49,7 +50,7 @@ func (r *PgObjectRepository) FindByCode(ctx context.Context, code string) (*obje
 		FROM eamobjects WHERE obj_code = $1`
 
 	var obj objects.Object
-	err := r.pool.QueryRow(ctx, query, code).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, code).Scan(
 		&obj.ID, &obj.Code, &obj.Type, &obj.Desc, &obj.Serial, &obj.Status,
 		&obj.Org, &obj.ParentCode, &obj.ParentOrg, &obj.InstallDate,
 		&obj.NotUsed, &obj.TenantID, &obj.CreatedAt, &obj.UpdatedAt,
@@ -64,7 +65,7 @@ func (r *PgObjectRepository) FindByCode(ctx context.Context, code string) (*obje
 func (r *PgObjectRepository) FindAll(ctx context.Context, tenantID string, org string, limit, offset int) ([]*objects.Object, int, error) {
 	countQuery := `SELECT COUNT(*) FROM eamobjects WHERE obj_tenant_id = $1`
 	var total int
-	if err := r.pool.QueryRow(ctx, countQuery, tenantID).Scan(&total); err != nil {
+	if err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, countQuery, tenantID).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
@@ -78,7 +79,7 @@ func (r *PgObjectRepository) FindAll(ctx context.Context, tenantID string, org s
 		ORDER BY obj_created_at DESC
 		LIMIT $2 OFFSET $3`
 
-	rows, err := r.pool.Query(ctx, query, tenantID, limit, offset)
+	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, tenantID, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -110,7 +111,7 @@ func (r *PgObjectRepository) FindByOrg(ctx context.Context, org string) ([]*obje
 		       obj_created_by, obj_updated_by
 		FROM eamobjects WHERE obj_org = $1`
 
-	rows, err := r.pool.Query(ctx, query, org)
+	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, org)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +144,7 @@ func (r *PgObjectRepository) FindChildren(ctx context.Context, parentCode, paren
 		FROM eamobjects 
 		WHERE obj_parent_code = $1 AND obj_parent_org = $2`
 
-	rows, err := r.pool.Query(ctx, query, parentCode, parentOrg)
+	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, parentCode, parentOrg)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +176,7 @@ func (r *PgObjectRepository) Create(ctx context.Context, obj *objects.Object) er
 		                        obj_created_at, obj_updated_at, obj_created_by, obj_updated_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`
 
-	_, err := r.pool.Exec(ctx, query,
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query,
 		obj.ID, obj.Code, obj.Type, obj.Desc, obj.Serial, obj.Status,
 		obj.Org, obj.ParentCode, obj.ParentOrg, obj.InstallDate,
 		obj.NotUsed, obj.TenantID, obj.CreatedAt, obj.UpdatedAt,
@@ -193,7 +194,7 @@ func (r *PgObjectRepository) Update(ctx context.Context, obj *objects.Object) er
 		    obj_updated_by = $12
 		WHERE obj_id = $1`
 
-	_, err := r.pool.Exec(ctx, query,
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query,
 		obj.ID, obj.Type, obj.Desc, obj.Serial, obj.Status,
 		obj.Org, obj.ParentCode, obj.ParentOrg, obj.InstallDate,
 		obj.NotUsed, time.Now(), obj.UpdatedBy,
@@ -203,6 +204,6 @@ func (r *PgObjectRepository) Update(ctx context.Context, obj *objects.Object) er
 
 func (r *PgObjectRepository) Delete(ctx context.Context, id string) error {
 	query := `UPDATE eamobjects SET obj_notused = '+', obj_updated_at = $2 WHERE obj_id = $1`
-	_, err := r.pool.Exec(ctx, query, id, time.Now())
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query, id, time.Now())
 	return err
 }

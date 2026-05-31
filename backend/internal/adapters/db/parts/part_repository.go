@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	infraDB "github.com/nova/backend/internal/infrastructure/db"
 
 	"github.com/nova/backend/internal/domain/parts"
 )
@@ -25,7 +26,7 @@ func (r *pgPartRepository) FindByID(ctx context.Context, id string) (*parts.Part
 		FROM eamparts WHERE par_id = $1`
 
 	var p parts.Part
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, id).Scan(
 		&p.ID, &p.Code, &p.Desc, &p.NotUsed, &p.Org, &p.TenantID,
 		&p.CreatedAt, &p.UpdatedAt, &p.CreatedBy, &p.UpdatedBy,
 	)
@@ -42,7 +43,7 @@ func (r *pgPartRepository) FindByCode(ctx context.Context, code string) (*parts.
 		FROM eamparts WHERE par_code = $1`
 
 	var p parts.Part
-	err := r.pool.QueryRow(ctx, query, code).Scan(
+	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, code).Scan(
 		&p.ID, &p.Code, &p.Desc, &p.NotUsed, &p.Org, &p.TenantID,
 		&p.CreatedAt, &p.UpdatedAt, &p.CreatedBy, &p.UpdatedBy,
 	)
@@ -62,7 +63,7 @@ func (r *pgPartRepository) FindAll(ctx context.Context, tenantID string, org str
 	}
 
 	var total int
-	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+	if err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
@@ -77,7 +78,7 @@ func (r *pgPartRepository) FindAll(ctx context.Context, tenantID string, org str
 	query += ` ORDER BY par_code ASC LIMIT $3 OFFSET $4`
 	args = append(args, limit, offset)
 
-	rows, err := r.pool.Query(ctx, query, args...)
+	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, args...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -106,7 +107,7 @@ func (r *pgPartRepository) FindByOrg(ctx context.Context, org string) ([]*parts.
 		FROM eamparts WHERE par_org = $1 AND par_notused IS NULL
 		ORDER BY par_code ASC`
 
-	rows, err := r.pool.Query(ctx, query, org)
+	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, org)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +136,7 @@ func (r *pgPartRepository) Create(ctx context.Context, p *parts.Part) error {
 		                      par_created_by, par_updated_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 
-	_, err := r.pool.Exec(ctx, query,
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query,
 		p.ID, p.Code, p.Desc, p.NotUsed, p.Org, p.TenantID,
 		p.CreatedAt, p.UpdatedAt, p.CreatedBy, p.UpdatedBy,
 	)
@@ -148,12 +149,12 @@ func (r *pgPartRepository) Update(ctx context.Context, p *parts.Part) error {
 		SET par_desc = $2, par_notused = $3, par_updated_at = $4, par_updated_by = $5
 		WHERE par_id = $1`
 
-	_, err := r.pool.Exec(ctx, query, p.ID, p.Desc, p.NotUsed, p.UpdatedAt, p.UpdatedBy)
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query, p.ID, p.Desc, p.NotUsed, p.UpdatedAt, p.UpdatedBy)
 	return err
 }
 
 func (r *pgPartRepository) Delete(ctx context.Context, id string) error {
 	query := `UPDATE eamparts SET par_notused = '+' WHERE par_id = $1`
-	_, err := r.pool.Exec(ctx, query, id)
+	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query, id)
 	return err
 }

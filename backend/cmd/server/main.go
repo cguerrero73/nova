@@ -55,7 +55,7 @@ func main() {
 	})
 
 	// Tenant middleware for all routes
-	tenantMiddleware := middleware.NewTenantMiddleware()
+	tenantMiddleware := middleware.NewTenantMiddleware(database.Pool)
 	app.Use(tenantMiddleware.ExtractTenant())
 
 	// Auth middleware
