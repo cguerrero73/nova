@@ -12,19 +12,19 @@ import (
 type User = users.User
 
 type Session struct {
-	ID           string     `json:"ses_id"`
-	UserCode     string     `json:"ses_user_code"`
-	RefreshToken string     `json:"ses_refresh_token"`
-	ExpiresAt    time.Time  `json:"ses_expires_at"`
-	IPAddress    string     `json:"ses_ip_address"`
-	UserAgent    string     `json:"ses_user_agent"`
-	CreatedAt    time.Time  `json:"ses_created_at"`
-	RevokedAt    *time.Time `json:"ses_revoked_at,omitempty"`
+	ID           string     `json:"id"`
+	UserCode     string     `json:"userCode"`
+	RefreshToken string     `json:"refreshToken"`
+	ExpiresAt    time.Time  `json:"expiresAt"`
+	IPAddress    string     `json:"ipAddress"`
+	UserAgent    string     `json:"userAgent"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	RevokedAt    *time.Time `json:"revokedAt,omitempty"`
 }
 
 type LoginRequest struct {
 	Tenant   string `json:"tenant" validate:"required"`
-	Email    string `json:"email" validate:"required,email"`
+	Code     string `json:"code" validate:"required"`
 	Password string `json:"password" validate:"required"`
 }
 
@@ -36,18 +36,18 @@ type RegisterRequest struct {
 }
 
 type RefreshRequest struct {
-	RefreshToken string `json:"refresh_token" validate:"required"`
+	RefreshToken string `json:"refreshToken" validate:"required"`
 }
 
 type AuthResponse struct {
 	User         *User  `json:"user"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int    `json:"expires_in"`
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
+	ExpiresIn    int    `json:"expiresIn"`
 }
 
 type TokenClaims struct {
-	UserCode string   `json:"user_code"`
+	UserCode string   `json:"userCode"`
 	Email    string   `json:"email"`
 	Name     string   `json:"name"`
 	Tenant   string   `json:"tenant"`

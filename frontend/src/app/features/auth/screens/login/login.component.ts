@@ -49,7 +49,7 @@ export class LoginComponent implements OnInit {
       if (this.mode() === 'login') {
         await this.authService
           .login({
-            email: this.email(),
+            code: this.email(),
             password: this.password(),
           })
           .toPromise();

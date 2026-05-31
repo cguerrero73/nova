@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	infraDB "github.com/nova/backend/internal/infrastructure/db"
@@ -20,8 +19,6 @@ func NewPgUserRepository(pool *pgxpool.Pool) *PgUserRepository {
 }
 
 func (r *PgUserRepository) FindByEmail(ctx context.Context, email string) (*auth.User, error) {
-	log.Printf("[DB] FindByEmail: buscando usuario con email=%s", email)
-
 	query := `
 		SELECT usr_id, usr_code, usr_name, usr_email, usr_password, usr_phone, 
 		       usr_status, usr_default_org, usr_notused, usr_tenant_id,
@@ -35,10 +32,8 @@ func (r *PgUserRepository) FindByEmail(ctx context.Context, email string) (*auth
 		&user.CreatedAt, &user.UpdatedAt, &user.CreatedBy, &user.UpdatedBy,
 	)
 	if err != nil {
-		log.Printf("[DB] FindByEmail: ERROR - %v", err)
 		return nil, err
 	}
-	log.Printf("[DB] FindByEmail: encontrado user=%s status=%s", user.Code, user.Status)
 	return &user, nil
 }
 
