@@ -1,6 +1,46 @@
+# Dependencies
 node_modules
+
+# Build artifacts
+frontend/dist/
+frontend/build/
+frontend/.angular/
+/build/
+/dist/
+/bin/
+
+# Go binaries (but NOT nova-* files - they are committed intentionally)
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Env files (contain secrets)
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.bak
+
 # Local Pi runtime state
 .atl/
 .pi/
 backend/.pi-lens/
-backend/nova-migrate
