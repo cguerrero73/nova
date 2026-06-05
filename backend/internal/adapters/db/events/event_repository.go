@@ -20,93 +20,116 @@ func NewPgEventRepository(pool *pgxpool.Pool) *pgEventRepository {
 }
 
 func (r *pgEventRepository) FindByID(ctx context.Context, id string) (*events.Event, error) {
+	var e *events.Event
 	query := `
 		SELECT evt_id, evt_code, evt_org, evt_desc, evt_type, evt_rtype, evt_status,
 		       evt_rstatus, evt_object, evt_object_org, evt_notused, evt_tenant_id,
 		       evt_created_at, evt_updated_at, evt_created_by, evt_updated_by
 		FROM eamevents WHERE evt_id = $1`
 
-	var e events.Event
-	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, id).Scan(
-		&e.ID, &e.Code, &e.Org, &e.Desc, &e.Type, &e.RType, &e.Status,
-		&e.RStatus, &e.Object, &e.ObjectOrg, &e.NotUsed, &e.TenantID,
-		&e.CreatedAt, &e.UpdatedAt, &e.CreatedBy, &e.UpdatedBy,
-	)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	}
-	return &e, err
+	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		var evt events.Event
+		err := tx.QueryRow(ctx, query, id).Scan(
+			&evt.ID, &evt.Code, &evt.Org, &evt.Desc, &evt.Type, &evt.RType, &evt.Status,
+			&evt.RStatus, &evt.Object, &evt.ObjectOrg, &evt.NotUsed, &evt.TenantID,
+			&evt.CreatedAt, &evt.UpdatedAt, &evt.CreatedBy, &evt.UpdatedBy,
+		)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		e = &evt
+		return nil
+	})
+
+	return e, err
 }
 
 func (r *pgEventRepository) FindByCode(ctx context.Context, code string) (*events.Event, error) {
+	var e *events.Event
 	query := `
 		SELECT evt_id, evt_code, evt_org, evt_desc, evt_type, evt_rtype, evt_status,
 		       evt_rstatus, evt_object, evt_object_org, evt_notused, evt_tenant_id,
 		       evt_created_at, evt_updated_at, evt_created_by, evt_updated_by
 		FROM eamevents WHERE evt_code = $1`
 
-	var e events.Event
-	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, code).Scan(
-		&e.ID, &e.Code, &e.Org, &e.Desc, &e.Type, &e.RType, &e.Status,
-		&e.RStatus, &e.Object, &e.ObjectOrg, &e.NotUsed, &e.TenantID,
-		&e.CreatedAt, &e.UpdatedAt, &e.CreatedBy, &e.UpdatedBy,
-	)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	}
-	return &e, err
+	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		var evt events.Event
+		err := tx.QueryRow(ctx, query, code).Scan(
+			&evt.ID, &evt.Code, &evt.Org, &evt.Desc, &evt.Type, &evt.RType, &evt.Status,
+			&evt.RStatus, &evt.Object, &evt.ObjectOrg, &evt.NotUsed, &evt.TenantID,
+			&evt.CreatedAt, &evt.UpdatedAt, &evt.CreatedBy, &evt.UpdatedBy,
+		)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		e = &evt
+		return nil
+	})
+
+	return e, err
 }
 
 func (r *pgEventRepository) FindAll(ctx context.Context, tenantID string, org string, limit, offset int) ([]*events.Event, int, error) {
-	countQuery := `SELECT COUNT(*) FROM eamevents WHERE evt_tenant_id = $1`
-	args := []interface{}{tenantID}
-
-	if org != "" {
-		countQuery += ` AND evt_org = $2`
-		args = append(args, org)
-	}
-
 	var total int
-	if err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
-		return nil, 0, err
-	}
+	var result []*events.Event
 
-	query := `
-		SELECT evt_id, evt_code, evt_org, evt_desc, evt_type, evt_rtype, evt_status,
-		       evt_rstatus, evt_object, evt_object_org, evt_notused, evt_tenant_id,
-		       evt_created_at, evt_updated_at, evt_created_by, evt_updated_by
-		FROM eamevents WHERE evt_tenant_id = $1`
+	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		countQuery := `SELECT COUNT(*) FROM eamevents WHERE evt_tenant_id = $1`
+		args := []interface{}{tenantID}
 
-	if org != "" {
-		query += ` AND evt_org = $2`
-	}
-	query += ` ORDER BY evt_created_at DESC LIMIT $3 OFFSET $4`
-	args = append(args, limit, offset)
-
-	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, args...)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer rows.Close()
-
-	var evts []*events.Event
-	for rows.Next() {
-		var e events.Event
-		err := rows.Scan(
-			&e.ID, &e.Code, &e.Org, &e.Desc, &e.Type, &e.RType, &e.Status,
-			&e.RStatus, &e.Object, &e.ObjectOrg, &e.NotUsed, &e.TenantID,
-			&e.CreatedAt, &e.UpdatedAt, &e.CreatedBy, &e.UpdatedBy,
-		)
-		if err != nil {
-			return nil, 0, err
+		if org != "" {
+			countQuery += ` AND evt_org = $2`
+			args = append(args, org)
 		}
-		evts = append(evts, &e)
-	}
 
-	return evts, total, nil
+		if err := tx.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+			return err
+		}
+
+		query := `
+			SELECT evt_id, evt_code, evt_org, evt_desc, evt_type, evt_rtype, evt_status,
+			       evt_rstatus, evt_object, evt_object_org, evt_notused, evt_tenant_id,
+			       evt_created_at, evt_updated_at, evt_created_by, evt_updated_by
+			FROM eamevents WHERE evt_tenant_id = $1`
+
+		if org != "" {
+			query += ` AND evt_org = $2`
+		}
+		query += ` ORDER BY evt_created_at DESC LIMIT $3 OFFSET $4`
+		args = append(args, limit, offset)
+
+		rows, err := tx.Query(ctx, query, args...)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var evt events.Event
+			err := rows.Scan(
+				&evt.ID, &evt.Code, &evt.Org, &evt.Desc, &evt.Type, &evt.RType, &evt.Status,
+				&evt.RStatus, &evt.Object, &evt.ObjectOrg, &evt.NotUsed, &evt.TenantID,
+				&evt.CreatedAt, &evt.UpdatedAt, &evt.CreatedBy, &evt.UpdatedBy,
+			)
+			if err != nil {
+				return err
+			}
+			result = append(result, &evt)
+		}
+		return rows.Err()
+	})
+
+	return result, total, err
 }
 
 func (r *pgEventRepository) FindByOrg(ctx context.Context, org string) ([]*events.Event, error) {
+	var result []*events.Event
 	query := `
 		SELECT evt_id, evt_code, evt_org, evt_desc, evt_type, evt_rtype, evt_status,
 		       evt_rstatus, evt_object, evt_object_org, evt_notused, evt_tenant_id,
@@ -114,117 +137,128 @@ func (r *pgEventRepository) FindByOrg(ctx context.Context, org string) ([]*event
 		FROM eamevents WHERE evt_org = $1 AND evt_notused IS NULL
 		ORDER BY evt_code ASC`
 
-	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, org)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var evts []*events.Event
-	for rows.Next() {
-		var e events.Event
-		err := rows.Scan(
-			&e.ID, &e.Code, &e.Org, &e.Desc, &e.Type, &e.RType, &e.Status,
-			&e.RStatus, &e.Object, &e.ObjectOrg, &e.NotUsed, &e.TenantID,
-			&e.CreatedAt, &e.UpdatedAt, &e.CreatedBy, &e.UpdatedBy,
-		)
+	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		rows, err := tx.Query(ctx, query, org)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		evts = append(evts, &e)
-	}
+		defer rows.Close()
 
-	return evts, nil
+		for rows.Next() {
+			var evt events.Event
+			err := rows.Scan(
+				&evt.ID, &evt.Code, &evt.Org, &evt.Desc, &evt.Type, &evt.RType, &evt.Status,
+				&evt.RStatus, &evt.Object, &evt.ObjectOrg, &evt.NotUsed, &evt.TenantID,
+				&evt.CreatedAt, &evt.UpdatedAt, &evt.CreatedBy, &evt.UpdatedBy,
+			)
+			if err != nil {
+				return err
+			}
+			result = append(result, &evt)
+		}
+		return rows.Err()
+	})
+
+	return result, err
 }
 
 func (r *pgEventRepository) FindByObject(ctx context.Context, objectCode, objectOrg string) ([]*events.Event, error) {
+	var result []*events.Event
 	query := `
 		SELECT evt_id, evt_code, evt_org, evt_desc, evt_type, evt_rtype, evt_status,
 		       evt_rstatus, evt_object, evt_object_org, evt_notused, evt_tenant_id,
 		       evt_created_at, evt_updated_at, evt_created_by, evt_updated_by
 		FROM eamevents WHERE evt_object = $1 AND evt_object_org = $2`
 
-	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, objectCode, objectOrg)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var evts []*events.Event
-	for rows.Next() {
-		var e events.Event
-		err := rows.Scan(
-			&e.ID, &e.Code, &e.Org, &e.Desc, &e.Type, &e.RType, &e.Status,
-			&e.RStatus, &e.Object, &e.ObjectOrg, &e.NotUsed, &e.TenantID,
-			&e.CreatedAt, &e.UpdatedAt, &e.CreatedBy, &e.UpdatedBy,
-		)
+	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		rows, err := tx.Query(ctx, query, objectCode, objectOrg)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		evts = append(evts, &e)
-	}
+		defer rows.Close()
 
-	return evts, nil
+		for rows.Next() {
+			var evt events.Event
+			err := rows.Scan(
+				&evt.ID, &evt.Code, &evt.Org, &evt.Desc, &evt.Type, &evt.RType, &evt.Status,
+				&evt.RStatus, &evt.Object, &evt.ObjectOrg, &evt.NotUsed, &evt.TenantID,
+				&evt.CreatedAt, &evt.UpdatedAt, &evt.CreatedBy, &evt.UpdatedBy,
+			)
+			if err != nil {
+				return err
+			}
+			result = append(result, &evt)
+		}
+		return rows.Err()
+	})
+
+	return result, err
 }
 
 func (r *pgEventRepository) FindByType(ctx context.Context, typeCode string) ([]*events.Event, error) {
+	var result []*events.Event
 	query := `
 		SELECT evt_id, evt_code, evt_org, evt_desc, evt_type, evt_rtype, evt_status,
 		       evt_rstatus, evt_object, evt_object_org, evt_notused, evt_tenant_id,
 		       evt_created_at, evt_updated_at, evt_created_by, evt_updated_by
 		FROM eamevents WHERE evt_type = $1`
 
-	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, typeCode)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var evts []*events.Event
-	for rows.Next() {
-		var e events.Event
-		err := rows.Scan(
-			&e.ID, &e.Code, &e.Org, &e.Desc, &e.Type, &e.RType, &e.Status,
-			&e.RStatus, &e.Object, &e.ObjectOrg, &e.NotUsed, &e.TenantID,
-			&e.CreatedAt, &e.UpdatedAt, &e.CreatedBy, &e.UpdatedBy,
-		)
+	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		rows, err := tx.Query(ctx, query, typeCode)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		evts = append(evts, &e)
-	}
+		defer rows.Close()
 
-	return evts, nil
+		for rows.Next() {
+			var evt events.Event
+			err := rows.Scan(
+				&evt.ID, &evt.Code, &evt.Org, &evt.Desc, &evt.Type, &evt.RType, &evt.Status,
+				&evt.RStatus, &evt.Object, &evt.ObjectOrg, &evt.NotUsed, &evt.TenantID,
+				&evt.CreatedAt, &evt.UpdatedAt, &evt.CreatedBy, &evt.UpdatedBy,
+			)
+			if err != nil {
+				return err
+			}
+			result = append(result, &evt)
+		}
+		return rows.Err()
+	})
+
+	return result, err
 }
 
 func (r *pgEventRepository) FindByStatus(ctx context.Context, status string) ([]*events.Event, error) {
+	var result []*events.Event
 	query := `
 		SELECT evt_id, evt_code, evt_org, evt_desc, evt_type, evt_rtype, evt_status,
 		       evt_rstatus, evt_object, evt_object_org, evt_notused, evt_tenant_id,
 		       evt_created_at, evt_updated_at, evt_created_by, evt_updated_by
 		FROM eamevents WHERE evt_status = $1`
 
-	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, status)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var evts []*events.Event
-	for rows.Next() {
-		var e events.Event
-		err := rows.Scan(
-			&e.ID, &e.Code, &e.Org, &e.Desc, &e.Type, &e.RType, &e.Status,
-			&e.RStatus, &e.Object, &e.ObjectOrg, &e.NotUsed, &e.TenantID,
-			&e.CreatedAt, &e.UpdatedAt, &e.CreatedBy, &e.UpdatedBy,
-		)
+	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		rows, err := tx.Query(ctx, query, status)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		evts = append(evts, &e)
-	}
+		defer rows.Close()
 
-	return evts, nil
+		for rows.Next() {
+			var evt events.Event
+			err := rows.Scan(
+				&evt.ID, &evt.Code, &evt.Org, &evt.Desc, &evt.Type, &evt.RType, &evt.Status,
+				&evt.RStatus, &evt.Object, &evt.ObjectOrg, &evt.NotUsed, &evt.TenantID,
+				&evt.CreatedAt, &evt.UpdatedAt, &evt.CreatedBy, &evt.UpdatedBy,
+			)
+			if err != nil {
+				return err
+			}
+			result = append(result, &evt)
+		}
+		return rows.Err()
+	})
+
+	return result, err
 }
 
 func (r *pgEventRepository) Create(ctx context.Context, e *events.Event) error {
@@ -235,12 +269,14 @@ func (r *pgEventRepository) Create(ctx context.Context, e *events.Event) error {
 		                       evt_created_by, evt_updated_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`
 
-	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query,
-		e.ID, e.Code, e.Org, e.Desc, e.Type, e.RType, e.Status,
-		e.RStatus, e.Object, e.ObjectOrg, e.NotUsed, e.TenantID,
-		e.CreatedAt, e.UpdatedAt, e.CreatedBy, e.UpdatedBy,
-	)
-	return err
+	return infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, query,
+			e.ID, e.Code, e.Org, e.Desc, e.Type, e.RType, e.Status,
+			e.RStatus, e.Object, e.ObjectOrg, e.NotUsed, e.TenantID,
+			e.CreatedAt, e.UpdatedAt, e.CreatedBy, e.UpdatedBy,
+		)
+		return err
+	})
 }
 
 func (r *pgEventRepository) Update(ctx context.Context, e *events.Event) error {
@@ -251,15 +287,19 @@ func (r *pgEventRepository) Update(ctx context.Context, e *events.Event) error {
 		    evt_notused = $10, evt_updated_at = $11, evt_updated_by = $12
 		WHERE evt_id = $1`
 
-	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query,
-		e.ID, e.Org, e.Desc, e.Type, e.RType, e.Status,
-		e.RStatus, e.Object, e.ObjectOrg, e.NotUsed, e.UpdatedAt, e.UpdatedBy,
-	)
-	return err
+	return infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, query,
+			e.ID, e.Org, e.Desc, e.Type, e.RType, e.Status,
+			e.RStatus, e.Object, e.ObjectOrg, e.NotUsed, e.UpdatedAt, e.UpdatedBy,
+		)
+		return err
+	})
 }
 
 func (r *pgEventRepository) Delete(ctx context.Context, id string) error {
 	query := `UPDATE eamevents SET evt_notused = '+' WHERE evt_id = $1`
-	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query, id)
-	return err
+	return infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, query, id)
+		return err
+	})
 }

@@ -1,0 +1,30 @@
+# PgBouncer Docker Compose
+# Corre esto en el servidor de PostgreSQL
+#
+# Uso:
+#   1. Ajustar DATABASE_URL con las credenciales reales de PostgreSQL
+#   2. docker-compose up -d
+
+services:
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: pgbouncer
+    ports:
+      - '0.0.0.0:6432:5432'
+    environment:
+      # Cambiar con las credenciales reales de PostgreSQL
+      DATABASE_URL: 'postgres://dev:dev@host.docker.internal:5432/nova'
+      POOL_MODE: 'session'
+      MAX_CLIENT_CONN: '100'
+      DEFAULT_POOL_SIZE: '20'
+      RESERVE_POOL_SIZE: '5'
+      RESERVE_POOL_TIMEOUT: '3'
+      SERVER_LOGIN_RETRY: '3'
+      QUERY_TIMEOUT: '60'
+      QUERY_WAIT_TIMEOUT: '30'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', "echo -e '\\x\\n SHOW STATICS;' | nc localhost 5432 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

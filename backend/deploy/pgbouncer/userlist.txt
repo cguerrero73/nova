@@ -1,0 +1,9 @@
+# Formato: "username" "password_hash_md5"
+# Para generar el hash: echo -n "password" | md5sum | cut -d' ' -f1
+# O desde postgres: SELECT 'md5' || md5('password', 'username')
+
+# Credenciales de desarrollo
+"dev" "dev"
+
+# En producción, agregar los hashes reales:
+# "tu_usuario" "hash_md5_del_password"

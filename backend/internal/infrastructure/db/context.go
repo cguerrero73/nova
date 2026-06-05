@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -22,47 +23,124 @@ type QueryEngine interface {
 var _ QueryEngine = (*pgxpool.Pool)(nil)
 var _ QueryEngine = (*pgxpool.Conn)(nil)
 
-const connLocalsKey = "dbConn"
+const (
+	tenantKey = "tenant"
+	connKey   = "dbConn"
+)
+
+// RunInTenantTx executes a function within a tenant-scoped transaction.
+// It automatically sets the search_path for the transaction.
+// This is the recommended way to execute queries when using PgBouncer in transaction mode.
+func RunInTenantTx(ctx context.Context, pool *pgxpool.Pool, fn func(tx pgx.Tx) error) error {
+	tenant := extractTenantCode(ctx)
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+
+	// Set search_path al inicio de la transacción si hay tenant
+	if tenant != "" {
+		schemaName := fmt.Sprintf("tenant_%s", tenant)
+		if _, err := tx.Exec(ctx, fmt.Sprintf("SET search_path TO %s, public", schemaName)); err != nil {
+			tx.Rollback(ctx)
+			return fmt.Errorf("setting search_path: %w", err)
+		}
+		log.Printf("[DEBUG] Transaction started with search_path=tenant_%s", tenant)
+	}
+
+	// Ejecutar la función con la transacción
+	if err := fn(tx); err != nil {
+		tx.Rollback(ctx)
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
+
+// RunInTx executes a function within a transaction without tenant scope.
+// Use this for global operations (e.g., tenant creation) that don't need isolation.
+func RunInTx(ctx context.Context, pool *pgxpool.Pool, fn func(tx pgx.Tx) error) error {
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := fn(tx); err != nil {
+		tx.Rollback(ctx)
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
+
+// GetEngine returns a tenant-scoped connection when available (stored in
+// the fasthttp request context by the tenant middleware), falling back to the
+// pool. This is for backward compatibility with session-mode connections.
+// For new code, prefer RunInTenantTx.
+func GetEngine(ctx context.Context, pool *pgxpool.Pool) QueryEngine {
+	conn := extractTenantConn(ctx)
+	tenant := extractTenantCode(ctx)
+
+	if conn != nil {
+		return conn
+	}
+
+	// Log warning if tenant is configured but no connection was found.
+	if tenant != "" {
+		log.Printf("[WARN] Tenant '%s' set but no tenant-scoped connection available. "+
+			"Using pool without tenant isolation.", tenant)
+	}
+
+	return pool
+}
 
 // SetTenantSchema acquires a connection from the pool, sets the search_path
 // to the tenant schema, and stores it in fasthttp.RequestCtx.UserValue.
-// Callers must ensure the connection is released after the request completes.
+// This is for session mode. For transaction mode, use RunInTenantTx.
 func SetTenantSchema(ctx *fasthttp.RequestCtx, pool *pgxpool.Pool, tenant string) error {
-	conn, err := pool.Acquire(ctx)
+	conn, err := pool.Acquire(context.Background())
 	if err != nil {
 		return fmt.Errorf("acquiring connection: %w", err)
 	}
 
 	schemaName := fmt.Sprintf("tenant_%s", tenant)
-	_, err = conn.Exec(ctx, fmt.Sprintf("SET search_path TO %s, public", schemaName))
+	_, err = conn.Exec(context.Background(), fmt.Sprintf("SET search_path TO %s, public", schemaName))
 	if err != nil {
 		conn.Release()
 		return fmt.Errorf("setting search_path: %w", err)
 	}
 
-	ctx.SetUserValue(connLocalsKey, conn)
+	ctx.SetUserValue(tenantKey, tenant)
+	ctx.SetUserValue(connKey, conn)
 	return nil
 }
 
 // ReleaseTenantConn releases the connection stored in fasthttp.RequestCtx, if any.
 func ReleaseTenantConn(ctx *fasthttp.RequestCtx) {
-	if conn, ok := ctx.UserValue(connLocalsKey).(*pgxpool.Conn); ok {
+	if conn, ok := ctx.UserValue(connKey).(*pgxpool.Conn); ok {
 		conn.Release()
-		ctx.RemoveUserValue(connLocalsKey)
+		ctx.RemoveUserValue(connKey)
+		ctx.RemoveUserValue(tenantKey)
 	}
 }
 
-// GetQueryEngine returns a tenant-scoped connection when available (stored in
-// the fasthttp request context by the tenant middleware), falling back to the
-// pool. This allows repositories to transparently use the per-request
-// connection (with the correct search_path).
-func GetQueryEngine(ctx context.Context, pool *pgxpool.Pool) QueryEngine {
-	// The context passed by Fiber handlers is *fasthttp.RequestCtx.
-	// If the middleware stored a connection there, use it.
+// extractTenantConn safely extracts the tenant connection from the context.
+func extractTenantConn(ctx context.Context) *pgxpool.Conn {
 	if fctx, ok := ctx.(*fasthttp.RequestCtx); ok {
-		if conn, ok := fctx.UserValue(connLocalsKey).(*pgxpool.Conn); ok {
+		if conn, ok := fctx.UserValue(connKey).(*pgxpool.Conn); ok {
 			return conn
 		}
 	}
-	return pool
+	return nil
+}
+
+// extractTenantCode safely extracts the tenant code from the context.
+func extractTenantCode(ctx context.Context) string {
+	if fctx, ok := ctx.(*fasthttp.RequestCtx); ok {
+		if tenant, ok := fctx.UserValue(tenantKey).(string); ok {
+			return tenant
+		}
+	}
+	return ""
 }

@@ -97,9 +97,9 @@ func NewContainer(pool *pgxpool.Pool, cfg *config.Config) *Container {
 
 	// API adapters (handlers)
 	return &Container{
-		ScreenHandler:  screensapi.NewScreenHandler(),
-		QueriesHandler: queriesapi.NewQueriesHandler(),
-		GridHandler:    gridapi.NewGridHandler(),
+		ScreenHandler:    screensapi.NewScreenHandler(),
+		QueriesHandler:   queriesapi.NewQueriesHandler(),
+		GridHandler:      gridapi.NewGridHandler(),
 		AuthHandler:      authapi.NewAuthHandler(authService),
 		UserHandler:      usersapi.NewUserHandler(userService),
 		OrgHandler:       orgsapi.NewOrganizationHandler(orgService),

@@ -1,4 +1,4 @@
-.PHONY: help dev build run test lint clean migrate-up migrate-down seed
+.PHONY: help dev build run test lint clean migrate-up migrate-down seed create-tenant ent-generate db-reset
 
 # Variables
 BINARY_NAME=nova-server
@@ -52,7 +52,6 @@ migrate-down: ## Rollback last migration
 		psql "postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_DATABASE)?search_path=$(DB_SCHEMA)" -f migrations/global/001_init_global.down.sql; \
 	elif [ "$$TYPE" = "tenant" ]; then \
 		read -p "Tenant code: " TENANT; \
-		psql "postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_DATABASE)?search_path=tenant_$$TENANT" -f migrations/tenant/001_init_tenant.down.sql; \
 		psql "postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_DATABASE)" -c "DROP SCHEMA IF EXISTS tenant_$$TENANT CASCADE"; \
 	else \
 		echo "Invalid type"; \

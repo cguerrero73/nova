@@ -2,7 +2,8 @@ package auth
 
 import (
 	"context"
-	"errors"
+	"crypto/rand"
+	"encoding/hex"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -29,9 +30,9 @@ func NewAuthService(userRepo UserRepository, sessionRepo SessionRepository, jwtC
 func (s *AuthService) Login(ctx context.Context, req *LoginRequest) (*AuthResponse, error) {
 	user, err := s.userRepo.FindByCode(ctx, req.Code)
 	if err != nil {
-		if errors.Is(err, context.Canceled) {
-			return nil, apperrors.ErrInternal
-		}
+		return nil, apperrors.ErrInternal
+	}
+	if user == nil {
 		return nil, apperrors.ErrInvalidCredentials()
 	}
 
@@ -80,8 +81,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (*A
 	if err != nil {
 		return nil, apperrors.ErrInvalidToken()
 	}
-
-	if session.ExpiresAt.Before(time.Now()) {
+	if session == nil {
 		return nil, apperrors.ErrInvalidToken()
 	}
 
@@ -140,12 +140,20 @@ func (s *AuthService) generateAccessToken(user *User) (string, error) {
 		tenant = *user.TenantID
 	}
 
+	now := time.Now()
+	expiresAt := now.Add(time.Duration(s.jwtConfig.ExpiryMins) * time.Minute)
+
 	claims := TokenClaims{
 		UserCode: user.Code,
 		Email:    user.Email,
 		Name:     user.Name,
 		Tenant:   tenant,
-		Roles:    []string{}, // TODO: fetch roles
+		Roles:    []string{},
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			IssuedAt:  jwt.NewNumericDate(now),
+			Issuer:    "nova",
+		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -170,18 +178,13 @@ func (s *AuthService) ValidateToken(tokenString string) (*TokenClaims, error) {
 }
 
 func generateCode() string {
-	return "USR-" + generateRandomString(8)
+	b := make([]byte, 4)
+	rand.Read(b)
+	return "USR-" + hex.EncodeToString(b)
 }
 
 func generateRefreshToken() string {
-	return "rt-" + generateRandomString(32)
-}
-
-func generateRandomString(n int) string {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letters[time.Now().UnixNano()%int64(len(letters))]
-	}
-	return string(b)
+	b := make([]byte, 16)
+	rand.Read(b)
+	return "rt-" + hex.EncodeToString(b)
 }

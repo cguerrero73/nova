@@ -20,113 +20,138 @@ func NewPgPartRepository(pool *pgxpool.Pool) *pgPartRepository {
 }
 
 func (r *pgPartRepository) FindByID(ctx context.Context, id string) (*parts.Part, error) {
+	var p *parts.Part
 	query := `
 		SELECT par_id, par_code, par_desc, par_notused, par_org, par_tenant_id,
 		       par_created_at, par_updated_at, par_created_by, par_updated_by
 		FROM eamparts WHERE par_id = $1`
 
-	var p parts.Part
-	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, id).Scan(
-		&p.ID, &p.Code, &p.Desc, &p.NotUsed, &p.Org, &p.TenantID,
-		&p.CreatedAt, &p.UpdatedAt, &p.CreatedBy, &p.UpdatedBy,
-	)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	}
-	return &p, err
+	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		var part parts.Part
+		err := tx.QueryRow(ctx, query, id).Scan(
+			&part.ID, &part.Code, &part.Desc, &part.NotUsed, &part.Org, &part.TenantID,
+			&part.CreatedAt, &part.UpdatedAt, &part.CreatedBy, &part.UpdatedBy,
+		)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		p = &part
+		return nil
+	})
+
+	return p, err
 }
 
 func (r *pgPartRepository) FindByCode(ctx context.Context, code string) (*parts.Part, error) {
+	var p *parts.Part
 	query := `
 		SELECT par_id, par_code, par_desc, par_notused, par_org, par_tenant_id,
 		       par_created_at, par_updated_at, par_created_by, par_updated_by
 		FROM eamparts WHERE par_code = $1`
 
-	var p parts.Part
-	err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, query, code).Scan(
-		&p.ID, &p.Code, &p.Desc, &p.NotUsed, &p.Org, &p.TenantID,
-		&p.CreatedAt, &p.UpdatedAt, &p.CreatedBy, &p.UpdatedBy,
-	)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	}
-	return &p, err
+	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		var part parts.Part
+		err := tx.QueryRow(ctx, query, code).Scan(
+			&part.ID, &part.Code, &part.Desc, &part.NotUsed, &part.Org, &part.TenantID,
+			&part.CreatedAt, &part.UpdatedAt, &part.CreatedBy, &part.UpdatedBy,
+		)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		p = &part
+		return nil
+	})
+
+	return p, err
 }
 
 func (r *pgPartRepository) FindAll(ctx context.Context, tenantID string, org string, limit, offset int) ([]*parts.Part, int, error) {
-	countQuery := `SELECT COUNT(*) FROM eamparts WHERE par_tenant_id = $1`
-	args := []interface{}{tenantID}
-
-	if org != "" {
-		countQuery += ` AND par_org = $2`
-		args = append(args, org)
-	}
-
 	var total int
-	if err := infraDB.GetQueryEngine(ctx, r.pool).QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
-		return nil, 0, err
-	}
-
-	query := `
-		SELECT par_id, par_code, par_desc, par_notused, par_org, par_tenant_id,
-		       par_created_at, par_updated_at, par_created_by, par_updated_by
-		FROM eamparts WHERE par_tenant_id = $1`
-
-	if org != "" {
-		query += ` AND par_org = $2`
-	}
-	query += ` ORDER BY par_code ASC LIMIT $3 OFFSET $4`
-	args = append(args, limit, offset)
-
-	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, args...)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer rows.Close()
-
 	var result []*parts.Part
-	for rows.Next() {
-		var p parts.Part
-		err := rows.Scan(
-			&p.ID, &p.Code, &p.Desc, &p.NotUsed, &p.Org, &p.TenantID,
-			&p.CreatedAt, &p.UpdatedAt, &p.CreatedBy, &p.UpdatedBy,
-		)
-		if err != nil {
-			return nil, 0, err
-		}
-		result = append(result, &p)
-	}
 
-	return result, total, nil
+	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		countQuery := `SELECT COUNT(*) FROM eamparts WHERE par_tenant_id = $1`
+		args := []interface{}{tenantID}
+
+		if org != "" {
+			countQuery += ` AND par_org = $2`
+			args = append(args, org)
+		}
+
+		if err := tx.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+			return err
+		}
+
+		query := `
+			SELECT par_id, par_code, par_desc, par_notused, par_org, par_tenant_id,
+			       par_created_at, par_updated_at, par_created_by, par_updated_by
+			FROM eamparts WHERE par_tenant_id = $1`
+
+		if org != "" {
+			query += ` AND par_org = $2`
+		}
+		query += ` ORDER BY par_code ASC LIMIT $3 OFFSET $4`
+		args = append(args, limit, offset)
+
+		rows, err := tx.Query(ctx, query, args...)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var part parts.Part
+			err := rows.Scan(
+				&part.ID, &part.Code, &part.Desc, &part.NotUsed, &part.Org, &part.TenantID,
+				&part.CreatedAt, &part.UpdatedAt, &part.CreatedBy, &part.UpdatedBy,
+			)
+			if err != nil {
+				return err
+			}
+			result = append(result, &part)
+		}
+		return rows.Err()
+	})
+
+	return result, total, err
 }
 
 func (r *pgPartRepository) FindByOrg(ctx context.Context, org string) ([]*parts.Part, error) {
+	var result []*parts.Part
 	query := `
 		SELECT par_id, par_code, par_desc, par_notused, par_org, par_tenant_id,
 		       par_created_at, par_updated_at, par_created_by, par_updated_by
 		FROM eamparts WHERE par_org = $1 AND par_notused IS NULL
 		ORDER BY par_code ASC`
 
-	rows, err := infraDB.GetQueryEngine(ctx, r.pool).Query(ctx, query, org)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var result []*parts.Part
-	for rows.Next() {
-		var p parts.Part
-		err := rows.Scan(
-			&p.ID, &p.Code, &p.Desc, &p.NotUsed, &p.Org, &p.TenantID,
-			&p.CreatedAt, &p.UpdatedAt, &p.CreatedBy, &p.UpdatedBy,
-		)
+	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		rows, err := tx.Query(ctx, query, org)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		result = append(result, &p)
-	}
+		defer rows.Close()
 
-	return result, nil
+		for rows.Next() {
+			var part parts.Part
+			err := rows.Scan(
+				&part.ID, &part.Code, &part.Desc, &part.NotUsed, &part.Org, &part.TenantID,
+				&part.CreatedAt, &part.UpdatedAt, &part.CreatedBy, &part.UpdatedBy,
+			)
+			if err != nil {
+				return err
+			}
+			result = append(result, &part)
+		}
+		return rows.Err()
+	})
+
+	return result, err
 }
 
 func (r *pgPartRepository) Create(ctx context.Context, p *parts.Part) error {
@@ -136,11 +161,13 @@ func (r *pgPartRepository) Create(ctx context.Context, p *parts.Part) error {
 		                      par_created_by, par_updated_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 
-	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query,
-		p.ID, p.Code, p.Desc, p.NotUsed, p.Org, p.TenantID,
-		p.CreatedAt, p.UpdatedAt, p.CreatedBy, p.UpdatedBy,
-	)
-	return err
+	return infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, query,
+			p.ID, p.Code, p.Desc, p.NotUsed, p.Org, p.TenantID,
+			p.CreatedAt, p.UpdatedAt, p.CreatedBy, p.UpdatedBy,
+		)
+		return err
+	})
 }
 
 func (r *pgPartRepository) Update(ctx context.Context, p *parts.Part) error {
@@ -149,12 +176,16 @@ func (r *pgPartRepository) Update(ctx context.Context, p *parts.Part) error {
 		SET par_desc = $2, par_notused = $3, par_updated_at = $4, par_updated_by = $5
 		WHERE par_id = $1`
 
-	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query, p.ID, p.Desc, p.NotUsed, p.UpdatedAt, p.UpdatedBy)
-	return err
+	return infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, query, p.ID, p.Desc, p.NotUsed, p.UpdatedAt, p.UpdatedBy)
+		return err
+	})
 }
 
 func (r *pgPartRepository) Delete(ctx context.Context, id string) error {
 	query := `UPDATE eamparts SET par_notused = '+' WHERE par_id = $1`
-	_, err := infraDB.GetQueryEngine(ctx, r.pool).Exec(ctx, query, id)
-	return err
+	return infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, query, id)
+		return err
+	})
 }
