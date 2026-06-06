@@ -1,10 +1,14 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, from } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { ApiService } from '@core/services/api.service';
 import { UiStore } from '@core/stores/ui.store';
-import { SavedQuery, GridQuery, QueryFilter, QuerySort, PaginatedResponse } from '@core/models/query.model';
-import { GridId, GRID_IDS, OPERATORS, SORT_DIRECTION, GridField, getGridFields } from '@core/constants/grids';
+import { SavedQuery, GridQuery, PaginatedResponse, GridConfigResponse } from '@core/models/query.model';
+import { GridId } from '@core/constants/grids';
+import { getGridFields } from '@core/constants/grids';
+
+// Cache para fields por gridId
+const fieldsCache = new Map<number, GridConfigResponse['config']['columns']>();
 
 @Injectable({ providedIn: 'root' })
 export class QueryService {
@@ -113,19 +117,51 @@ export class QueryService {
     this.currentQuery.set(null);
   }
 
-  // Obtener fields de un grid
-  getFields(gridId: GridId): GridField[] {
+  // Obtener fields de un grid (del backend con cache)
+  getFields(gridId: GridId): Observable<GridConfigResponse['config']['columns']> {
+    // Si está en cache, devolverlo
+    if (fieldsCache.has(gridId)) {
+      return of(fieldsCache.get(gridId)!);
+    }
+
+    // Llamar al backend para obtener la config usando postRaw
+    // ya que el endpoint devuelve { success, config } directamente
+    return this.api.postRaw<GridConfigResponse>(`/grid/config/id/${gridId}`, {}).pipe(
+      map(response => {
+        const columns = response?.config?.columns || [];
+        fieldsCache.set(gridId, columns);
+        return columns;
+      }),
+      catchError(() => {
+        // Si falla, caer a constantes mockeadas
+        const fallback = getGridFields(gridId);
+        return of(fallback);
+      })
+    );
+  }
+
+  // Obtener fields de un grid (sync, usa cache o constantes)
+  getFieldsSync(gridId: GridId): GridConfigResponse['config']['columns'] {
+    if (fieldsCache.has(gridId)) {
+      return fieldsCache.get(gridId)!;
+    }
+    // Fallback a constantes (para casos donde no se puede usar Observable)
     return getGridFields(gridId);
   }
 
   // Crear query vacía por defecto
   createDefaultQuery(gridId: number): GridQuery {
-    const fields = getGridFields(gridId as GridId);
+    const fields = this.getFieldsSync(gridId as GridId);
     return {
       fields: fields.map(f => f.id),
       sort: [],
       filters: [],
       pagination: { pageSize: 20 },
     };
+  }
+
+  // Invalidar cache de fields
+  invalidateFieldsCache(): void {
+    fieldsCache.clear();
   }
 }

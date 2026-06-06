@@ -1,4 +1,4 @@
-import { GridId, OperatorId, SortDirection } from '../constants/grids';
+import { OperatorId, SortDirection } from '../constants/grids';
 
 // Query filter enviado desde frontend
 export interface QueryFilter {
@@ -62,4 +62,32 @@ export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
+}
+
+// Grid column metadata del backend
+export interface GridColumn {
+  id: number;
+  key: string;
+  label: string;
+  type: 'string' | 'number' | 'date' | 'boolean' | 'select';
+  sortable?: boolean;
+  filterable?: boolean;
+}
+
+// Grid config del backend (metadata completa)
+export interface GridConfig {
+  gridId: number;
+  gridName: string;
+  baseQuery: string;
+  availableFilters: number[];
+  availableSort: number[];
+  availableDisplay: number[];
+  columns: GridColumn[];
+}
+
+// API Response para grid config
+export interface GridConfigResponse {
+  success: boolean;
+  config: GridConfig;
+  data?: never; // No usar data para este endpoint
 }

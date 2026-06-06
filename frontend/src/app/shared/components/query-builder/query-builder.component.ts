@@ -1,14 +1,14 @@
-import { Component, input, output, signal, computed, OnInit } from '@angular/core';
+import { Component, input, output, signal, computed, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { 
   GridId, 
-  getGridFields, 
   OPERATORS, 
   SORT_DIRECTION 
 } from '@core/constants/grids';
-import { SavedQuery, GridQuery, QueryFilter, QuerySort } from '@core/models/query.model';
+import { SavedQuery, GridQuery, QueryFilter, QuerySort, GridColumn } from '@core/models/query.model';
+import { QueryService } from '@core/services/query.service';
 
 @Component({
   selector: 'app-query-builder',
@@ -18,6 +18,7 @@ import { SavedQuery, GridQuery, QueryFilter, QuerySort } from '@core/models/quer
   styleUrls: ['./query-builder.component.css']
 })
 export class QueryBuilderComponent implements OnInit {
+  private readonly queryService = inject(QueryService);
   // Inputs
   gridId = input.required<number>();
   initialQuery = input<SavedQuery | null>(null);
@@ -30,6 +31,7 @@ export class QueryBuilderComponent implements OnInit {
   isOpen = signal(false);
   editMode = signal(false);
   activeTab = signal<'fields' | 'sort' | 'filter'>('fields');
+  fields = signal<GridColumn[]>([]);  // Campos cargados del backend
   
   // Referencias para drag-drop
   availableList: any;
@@ -72,19 +74,27 @@ export class QueryBuilderComponent implements OnInit {
 
   // Computed
   availableFields = computed(() => {
-    return getGridFields(this.gridId() as GridId);
+    return this.fields();
   });
 
   sortableFields = computed(() => {
-    return this.availableFields().filter(f => f.sortable);
+    return this.fields().filter(f => f.sortable);
   });
 
   filterableFields = computed(() => {
-    return this.availableFields().filter(f => f.filterable);
+    return this.fields().filter(f => f.filterable);
   });
 
   ngOnInit() {
-    this.reset();
+    this.loadFields();
+  }
+
+  // Cargar campos del backend
+  private loadFields(): void {
+    this.queryService.getFields(this.gridId() as GridId).subscribe({
+      next: (columns) => this.fields.set(columns),
+      error: (err) => console.error('Error loading fields:', err)
+    });
   }
 
   open(query?: SavedQuery) {
@@ -115,8 +125,7 @@ export class QueryBuilderComponent implements OnInit {
     this.isPublic = false;
     this.isDefault = false;
     
-    const fields = getGridFields(this.gridId() as GridId);
-    const allFieldIds = fields.map(f => f.id);
+    const allFieldIds = this.fields().map(f => f.id);
     this.selectedFields.set(allFieldIds);
     this.availableFieldsList.set([]);
     
@@ -137,7 +146,7 @@ export class QueryBuilderComponent implements OnInit {
   }
 
   getFieldLabel(fieldId: number): string {
-    const allFields = getGridFields(this.gridId() as GridId);
+    const allFields = this.fields();
     const field = allFields.find(f => f.id === fieldId);
     if (field) return field.label;
     
