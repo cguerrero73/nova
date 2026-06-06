@@ -3,12 +3,17 @@ import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { ApiService } from '@core/services/api.service';
 import { UiStore } from '@core/stores/ui.store';
-import { SavedQuery, GridQuery, PaginatedResponse, GridConfigResponse } from '@core/models/query.model';
-import { GridId } from '@core/constants/grids';
+import {
+  SavedQuery,
+  GridQuery,
+  PaginatedResponse,
+  GridConfigResponse,
+} from '@core/models/query.model';
+import { GridId, GRID_IDS } from '@core/constants/grids';
 import { getGridFields } from '@core/constants/grids';
 
-// Cache para fields por gridId
-const fieldsCache = new Map<number, GridConfigResponse['config']['columns']>();
+// Cache para fields por nombre de grid
+const fieldsCache = new Map<string, GridConfigResponse['config']['columns']>();
 
 @Injectable({ providedIn: 'root' })
 export class QueryService {
@@ -22,35 +27,41 @@ export class QueryService {
   readonly currentMeta = signal({ page: 1, pageSize: 20, total: 0, totalPages: 0 });
 
   // Ejecutar query y obtener datos
-  executeQuery(gridId: number, query: GridQuery, page: number = 1): Observable<PaginatedResponse<unknown>> {
-    return this.api.postRaw<PaginatedResponse<unknown>>('/grid/data', {
-      gridId,
-      query,
-      page,
-    }).pipe(
-      map(response => {
-        this.currentMeta.set(response.meta);
-        return response;
+  executeQuery(
+    gridId: number,
+    query: GridQuery,
+    page: number = 1
+  ): Observable<PaginatedResponse<unknown>> {
+    return this.api
+      .postRaw<PaginatedResponse<unknown>>('/grid/data', {
+        gridId,
+        query,
+        page,
       })
-    );
+      .pipe(
+        map((response) => {
+          this.currentMeta.set(response.meta);
+          return response;
+        })
+      );
   }
 
   // Cargar queries de un grid
   loadByGridId(gridId: number): Observable<SavedQuery[]> {
     this.uiStore.setLoading(true);
-    
+
     return this.api.get<SavedQuery[]>('/queries', { gridId }).pipe(
-      map(response => {
+      map((response) => {
         const queries = response?.data || [];
         this.queries.set(queries);
-        
+
         // Buscar default
-        const defaultQuery = queries.find(q => q.isDefault);
+        const defaultQuery = queries.find((q) => q.isDefault);
         if (defaultQuery) {
           this.selectedQuery.set(defaultQuery);
           this.currentQuery.set(defaultQuery.query);
         }
-        
+
         this.uiStore.setLoading(false);
         return queries;
       })
@@ -59,17 +70,17 @@ export class QueryService {
 
   // Obtener un query por ID
   getById(id: string): Observable<SavedQuery | null> {
-    return this.api.getById<SavedQuery>('/queries', id).pipe(
-      map(response => response?.data || null)
-    );
+    return this.api
+      .getById<SavedQuery>('/queries', id)
+      .pipe(map((response) => response?.data || null));
   }
 
   // Guardar nuevo query
   save(query: Omit<SavedQuery, 'id' | 'createdAt' | 'updatedAt'>): Observable<SavedQuery> {
     return this.api.post<SavedQuery>('/queries', query).pipe(
-      map(response => {
+      map((response) => {
         const saved = response.data!;
-        this.queries.update(list => [...list, saved]);
+        this.queries.update((list) => [...list, saved]);
         return saved;
       })
     );
@@ -78,11 +89,9 @@ export class QueryService {
   // Actualizar query
   update(id: string, query: Partial<SavedQuery>): Observable<SavedQuery> {
     return this.api.put<SavedQuery>('/queries', id, query).pipe(
-      map(response => {
+      map((response) => {
         const updated = response.data!;
-        this.queries.update(list => 
-          list.map(q => q.id === id ? updated : q)
-        );
+        this.queries.update((list) => list.map((q) => (q.id === id ? updated : q)));
         return updated;
       })
     );
@@ -91,15 +100,15 @@ export class QueryService {
   // Eliminar query
   delete(id: string): Observable<boolean> {
     return this.api.delete('/queries', id).pipe(
-      map(response => {
-        this.queries.update(list => list.filter(q => q.id !== id));
-        
+      map((response) => {
+        this.queries.update((list) => list.filter((q) => q.id !== id));
+
         // Si era el seleccionado, limpiar
         if (this.selectedQuery()?.id === id) {
           this.selectedQuery.set(null);
           this.currentQuery.set(null);
         }
-        
+
         return response.success;
       })
     );
@@ -117,43 +126,42 @@ export class QueryService {
     this.currentQuery.set(null);
   }
 
-  // Obtener fields de un grid (del backend con cache)
-  getFields(gridId: GridId): Observable<GridConfigResponse['config']['columns']> {
+  // Obtener fields de un grid por nombre (del backend con cache)
+  getFields(gridName: string): Observable<GridConfigResponse['config']['columns']> {
     // Si está en cache, devolverlo
-    if (fieldsCache.has(gridId)) {
-      return of(fieldsCache.get(gridId)!);
+    if (fieldsCache.has(gridName)) {
+      return of(fieldsCache.get(gridName)!);
     }
 
-    // Llamar al backend para obtener la config usando postRaw
-    // ya que el endpoint devuelve { success, config } directamente
-    return this.api.postRaw<GridConfigResponse>(`/grid/config/id/${gridId}`, {}).pipe(
-      map(response => {
+    // Llamar al backend para obtener la config usando el nombre del grid
+    return this.api.postRaw<GridConfigResponse>(`/grid/config/${gridName}`, {}).pipe(
+      map((response) => {
         const columns = response?.config?.columns || [];
-        fieldsCache.set(gridId, columns);
+        fieldsCache.set(gridName, columns);
         return columns;
       }),
       catchError(() => {
         // Si falla, caer a constantes mockeadas
-        const fallback = getGridFields(gridId);
+        const fallback = getGridFields(GRID_IDS.USERS);
         return of(fallback);
       })
     );
   }
 
-  // Obtener fields de un grid (sync, usa cache o constantes)
-  getFieldsSync(gridId: GridId): GridConfigResponse['config']['columns'] {
-    if (fieldsCache.has(gridId)) {
-      return fieldsCache.get(gridId)!;
+  // Obtener fields de un grid por nombre (sync, usa cache o constantes)
+  getFieldsSync(gridName: string): GridConfigResponse['config']['columns'] {
+    if (fieldsCache.has(gridName)) {
+      return fieldsCache.get(gridName)!;
     }
     // Fallback a constantes (para casos donde no se puede usar Observable)
-    return getGridFields(gridId);
+    return getGridFields(GRID_IDS.USERS);
   }
 
   // Crear query vacía por defecto
-  createDefaultQuery(gridId: number): GridQuery {
-    const fields = this.getFieldsSync(gridId as GridId);
+  createDefaultQuery(gridName: string): GridQuery {
+    const fields = this.getFieldsSync(gridName);
     return {
-      fields: fields.map(f => f.id),
+      fields: fields.map((f) => f.id),
       sort: [],
       filters: [],
       pagination: { pageSize: 20 },

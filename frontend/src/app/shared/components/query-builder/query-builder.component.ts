@@ -1,13 +1,20 @@
 import { Component, input, output, signal, computed, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
-import { 
-  GridId, 
-  OPERATORS, 
-  SORT_DIRECTION 
-} from '@core/constants/grids';
-import { SavedQuery, GridQuery, QueryFilter, QuerySort, GridColumn } from '@core/models/query.model';
+import {
+  CdkDragDrop,
+  DragDropModule,
+  moveItemInArray,
+  transferArrayItem,
+} from '@angular/cdk/drag-drop';
+import { OPERATORS, SORT_DIRECTION } from '@core/constants/grids';
+import {
+  SavedQuery,
+  GridQuery,
+  QueryFilter,
+  QuerySort,
+  GridColumn,
+} from '@core/models/query.model';
 import { QueryService } from '@core/services/query.service';
 
 @Component({
@@ -15,14 +22,14 @@ import { QueryService } from '@core/services/query.service';
   standalone: true,
   imports: [CommonModule, FormsModule, DragDropModule],
   templateUrl: './query-builder.component.html',
-  styleUrls: ['./query-builder.component.css']
+  styleUrls: ['./query-builder.component.css'],
 })
 export class QueryBuilderComponent implements OnInit {
   private readonly queryService = inject(QueryService);
   // Inputs
-  gridId = input.required<number>();
+  gridName = input.required<string>();
   initialQuery = input<SavedQuery | null>(null);
-  
+
   // Outputs
   saved = output<SavedQuery>();
   closed = output<void>();
@@ -31,12 +38,12 @@ export class QueryBuilderComponent implements OnInit {
   isOpen = signal(false);
   editMode = signal(false);
   activeTab = signal<'fields' | 'sort' | 'filter'>('fields');
-  fields = signal<GridColumn[]>([]);  // Campos cargados del backend
-  
+  fields = signal<GridColumn[]>([]); // Campos cargados del backend
+
   // Referencias para drag-drop
   availableList: any;
   selectedList: any;
-  
+
   // Form fields
   name = '';
   isPublic = false;
@@ -47,7 +54,7 @@ export class QueryBuilderComponent implements OnInit {
   sortDirection = SORT_DIRECTION.ASC;
   filters = signal<QueryFilter[]>([]);
   currentSort = signal<QuerySort[]>([]);
-  
+
   // Nuevo filtro
   newFilter = { field: 0, operator: 1, value: '' };
 
@@ -78,11 +85,11 @@ export class QueryBuilderComponent implements OnInit {
   });
 
   sortableFields = computed(() => {
-    return this.fields().filter(f => f.sortable);
+    return this.fields().filter((f) => f.sortable);
   });
 
   filterableFields = computed(() => {
-    return this.fields().filter(f => f.filterable);
+    return this.fields().filter((f) => f.filterable);
   });
 
   ngOnInit() {
@@ -91,9 +98,9 @@ export class QueryBuilderComponent implements OnInit {
 
   // Cargar campos del backend
   private loadFields(): void {
-    this.queryService.getFields(this.gridId() as GridId).subscribe({
+    this.queryService.getFields(this.gridName()).subscribe({
       next: (columns) => this.fields.set(columns),
-      error: (err) => console.error('Error loading fields:', err)
+      error: (err) => console.error('Error loading fields:', err),
     });
   }
 
@@ -105,7 +112,7 @@ export class QueryBuilderComponent implements OnInit {
       this.isDefault = query.isDefault;
       this.selectedFields.set([...query.query.fields]);
       this.currentSort.set([...query.query.sort]);
-      this.filters.set(query.query.filters.map(f => ({ ...f })));
+      this.filters.set(query.query.filters.map((f) => ({ ...f })));
       this.updateAvailableFields();
     } else {
       this.reset();
@@ -124,11 +131,11 @@ export class QueryBuilderComponent implements OnInit {
     this.name = '';
     this.isPublic = false;
     this.isDefault = false;
-    
-    const allFieldIds = this.fields().map(f => f.id);
+
+    const allFieldIds = this.fields().map((f) => f.id);
     this.selectedFields.set(allFieldIds);
     this.availableFieldsList.set([]);
-    
+
     this.currentSort.set([]);
     this.filters.set([]);
     this.sortField = null;
@@ -139,34 +146,32 @@ export class QueryBuilderComponent implements OnInit {
   updateAvailableFields() {
     const allFields = this.availableFields();
     const selected = this.selectedFields();
-    const available = allFields
-      .filter(f => !selected.includes(f.id))
-      .map(f => f.id);
+    const available = allFields.filter((f) => !selected.includes(f.id)).map((f) => f.id);
     this.availableFieldsList.set(available);
   }
 
   getFieldLabel(fieldId: number): string {
     const allFields = this.fields();
-    const field = allFields.find(f => f.id === fieldId);
+    const field = allFields.find((f) => f.id === fieldId);
     if (field) return field.label;
-    
-    const sortField = this.currentSort().find(s => s.field === fieldId);
+
+    const sortField = this.currentSort().find((s) => s.field === fieldId);
     if (sortField) {
-      const sf = allFields.find(f => f.id === sortField.field);
+      const sf = allFields.find((f) => f.id === sortField.field);
       if (sf) return sf.label;
     }
-    
-    const filter = this.filters().find(f => f.field === fieldId);
+
+    const filter = this.filters().find((f) => f.field === fieldId);
     if (filter) {
-      const ff = allFields.find(f => f.id === filter.field);
+      const ff = allFields.find((f) => f.id === filter.field);
       if (ff) return ff.label;
     }
-    
+
     return String(fieldId);
   }
 
   getOperatorLabel(operatorId: number): string {
-    const op = this.operatorList.find(o => o.value === operatorId);
+    const op = this.operatorList.find((o) => o.value === operatorId);
     return op?.label || '=';
   }
 
@@ -206,38 +211,35 @@ export class QueryBuilderComponent implements OnInit {
 
   addSort() {
     if (!this.sortField) return;
-    
-    const existing = this.currentSort().filter(s => s.field !== this.sortField);
-    
-    this.currentSort.set([
-      ...existing,
-      { field: this.sortField!, direction: this.sortDirection }
-    ]);
-    
+
+    const existing = this.currentSort().filter((s) => s.field !== this.sortField);
+
+    this.currentSort.set([...existing, { field: this.sortField!, direction: this.sortDirection }]);
+
     this.sortField = null;
   }
 
   removeSort(fieldId: number) {
-    this.currentSort.set(this.currentSort().filter(s => s.field !== fieldId));
+    this.currentSort.set(this.currentSort().filter((s) => s.field !== fieldId));
   }
 
   addFilter() {
     if (!this.newFilter.field || !this.newFilter.operator) return;
-    
-    this.filters.update(f => [
-      ...f, 
-      { 
-        field: this.newFilter.field, 
-        operator: this.newFilter.operator as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10, 
-        value: this.newFilter.value 
-      }
+
+    this.filters.update((f) => [
+      ...f,
+      {
+        field: this.newFilter.field,
+        operator: this.newFilter.operator as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10,
+        value: this.newFilter.value,
+      },
     ]);
-    
+
     this.newFilter = { field: 0, operator: 1, value: '' };
   }
 
   removeFilter(index: number) {
-    this.filters.update(f => f.filter((_, i) => i !== index));
+    this.filters.update((f) => f.filter((_, i) => i !== index));
   }
 
   save() {
@@ -246,13 +248,18 @@ export class QueryBuilderComponent implements OnInit {
     const query: GridQuery = {
       fields: this.selectedFields(),
       sort: this.currentSort() as { field: number; direction: 1 | 2 }[],
-      filters: this.filters().filter(f => f.field > 0) as { field: number; operator: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10; value: unknown }[],
+      filters: this.filters().filter((f) => f.field > 0) as {
+        field: number;
+        operator: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+        value: unknown;
+      }[],
       pagination: { pageSize: 20 },
     };
 
     const savedQuery: SavedQuery = {
       id: this.initialQuery()?.id || '',
-      gridId: this.gridId(),
+      gridId: this.initialQuery()?.gridId || 0,
+      gridName: this.gridName(),
       name: this.name,
       userId: null,
       isPublic: this.isPublic,

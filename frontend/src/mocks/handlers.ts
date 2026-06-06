@@ -45,6 +45,7 @@ let savedQueries: SavedQuery[] = [
   {
     id: '1',
     gridId: GRID_IDS.USERS,
+    gridName: 'BMUSER',
     name: 'Todos los usuarios',
     userId: null,
     isPublic: true,
@@ -61,6 +62,7 @@ let savedQueries: SavedQuery[] = [
   {
     id: '2',
     gridId: GRID_IDS.USERS,
+    gridName: 'BMUSER',
     name: 'Solo activos',
     userId: 'user-1',
     isPublic: false,
@@ -364,6 +366,7 @@ export const handlers = [
     const newQuery: SavedQuery = {
       id: String(Date.now()),
       gridId: body.gridId,
+      gridName: body.gridName || '',
       name: body.name,
       userId,
       isPublic: body.isPublic,

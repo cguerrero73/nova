@@ -2,20 +2,20 @@ import { OperatorId, SortDirection } from '../constants/grids';
 
 // Query filter enviado desde frontend
 export interface QueryFilter {
-  field: number;      // ID del campo
+  field: number; // ID del campo
   operator: OperatorId;
   value: unknown;
 }
 
 // Query sort enviado desde frontend
 export interface QuerySort {
-  field: number;      // ID del campo
+  field: number; // ID del campo
   direction: SortDirection;
 }
 
 // Query completo enviado desde frontend
 export interface GridQuery {
-  fields: number[];  // IDs de campos a mostrar
+  fields: number[]; // IDs de campos a mostrar
   sort: QuerySort[];
   filters: QueryFilter[];
   pagination: {
@@ -27,6 +27,7 @@ export interface GridQuery {
 export interface SavedQuery {
   id: string;
   gridId: number;
+  gridName: string;
   name: string;
   userId: string | null;
   isPublic: boolean;
