@@ -146,7 +146,9 @@ func main() {
 
 	// Queries
 	protected.Get("/queries", c.QueriesHandler.List)
-	protected.Post("/grid/data", c.GridHandler.ExecuteQuery)
+	protected.Post("/grid/data", c.GridHandler.ExecuteData)
+	protected.Get("/grid/config/:name", c.GridHandler.GetConfig)
+	protected.Get("/grid/config/id/:id", c.GridHandler.GetConfigByID)
 
 	// Events CRUD
 	eventsGroup := protected.Group("/events")

@@ -13,31 +13,206 @@ interface User {
 
 // Mock data de usuarios
 let mockUsers: User[] = [
-  { id: '1', name: 'John Doe', email: 'john.doe@example.com', status: 'active', createdAt: '2024-01-15T10:00:00Z', updatedAt: '2024-01-15T10:00:00Z' },
-  { id: '2', name: 'Jane Smith', email: 'jane.smith@example.com', status: 'active', createdAt: '2024-01-16T11:30:00Z', updatedAt: '2024-01-16T11:30:00Z' },
-  { id: '3', name: 'Bob Johnson', email: 'bob.johnson@example.com', status: 'inactive', createdAt: '2024-01-17T09:15:00Z', updatedAt: '2024-01-17T09:15:00Z' },
-  { id: '4', name: 'Alice Williams', email: 'alice.williams@example.com', status: 'active', createdAt: '2024-01-18T14:20:00Z', updatedAt: '2024-01-18T14:20:00Z' },
-  { id: '5', name: 'Charlie Brown', email: 'charlie.brown@example.com', status: 'active', createdAt: '2024-01-19T08:45:00Z', updatedAt: '2024-01-19T08:45:00Z' },
-  { id: '6', name: 'Diana Prince', email: 'diana.prince@example.com', status: 'inactive', createdAt: '2024-01-20T16:00:00Z', updatedAt: '2024-01-20T16:00:00Z' },
-  { id: '7', name: 'Ethan Hunt', email: 'ethan.hunt@example.com', status: 'active', createdAt: '2024-01-21T12:30:00Z', updatedAt: '2024-01-21T12:30:00Z' },
-  { id: '8', name: 'Fiona Gallagher', email: 'fiona.gallagher@example.com', status: 'active', createdAt: '2024-01-22T10:15:00Z', updatedAt: '2024-01-22T10:15:00Z' },
-  { id: '9', name: 'George Miller', email: 'george.miller@example.com', status: 'inactive', createdAt: '2024-01-23T15:45:00Z', updatedAt: '2024-01-23T15:45:00Z' },
-  { id: '10', name: 'Hannah Montana', email: 'hannah.montana@example.com', status: 'active', createdAt: '2024-01-24T11:00:00Z', updatedAt: '2024-01-24T11:00:00Z' },
-  { id: '11', name: 'Ivan Drago', email: 'ivan.drago@example.com', status: 'active', createdAt: '2024-01-25T13:20:00Z', updatedAt: '2024-01-25T13:20:00Z' },
-  { id: '12', name: 'Julia Roberts', email: 'julia.roberts@example.com', status: 'active', createdAt: '2024-01-26T09:30:00Z', updatedAt: '2024-01-26T09:30:00Z' },
-  { id: '13', name: 'Kevin Hart', email: 'kevin.hart@example.com', status: 'inactive', createdAt: '2024-01-27T14:45:00Z', updatedAt: '2024-01-27T14:45:00Z' },
-  { id: '14', name: 'Laura Palmer', email: 'laura.palmer@example.com', status: 'active', createdAt: '2024-01-28T10:00:00Z', updatedAt: '2024-01-28T10:00:00Z' },
-  { id: '15', name: 'Mike Ross', email: 'mike.ross@example.com', status: 'active', createdAt: '2024-01-29T16:30:00Z', updatedAt: '2024-01-29T16:30:00Z' },
-  { id: '16', name: 'Nancy Drew', email: 'nancy.drew@example.com', status: 'active', createdAt: '2024-01-30T11:15:00Z', updatedAt: '2024-01-30T11:15:00Z' },
-  { id: '17', name: 'Oscar Isaac', email: 'oscar.isaac@example.com', status: 'inactive', createdAt: '2024-01-31T08:00:00Z', updatedAt: '2024-01-31T08:00:00Z' },
-  { id: '18', name: 'Pamela Anderson', email: 'pamela.anderson@example.com', status: 'active', createdAt: '2024-02-01T12:00:00Z', updatedAt: '2024-02-01T12:00:00Z' },
-  { id: '19', name: 'Quincy Jones', email: 'quincy.jones@example.com', status: 'active', createdAt: '2024-02-02T15:30:00Z', updatedAt: '2024-02-02T15:30:00Z' },
-  { id: '20', name: 'Rachel Green', email: 'rachel.green@example.com', status: 'active', createdAt: '2024-02-03T09:45:00Z', updatedAt: '2024-02-03T09:45:00Z' },
-  { id: '21', name: 'Steve Rogers', email: 'steve.rogers@example.com', status: 'active', createdAt: '2024-02-04T14:00:00Z', updatedAt: '2024-02-04T14:00:00Z' },
-  { id: '22', name: 'Tina Turner', email: 'tina.turner@example.com', status: 'inactive', createdAt: '2024-02-05T10:30:00Z', updatedAt: '2024-02-05T10:30:00Z' },
-  { id: '23', name: 'Uma Thurman', email: 'uma.thurman@example.com', status: 'active', createdAt: '2024-02-06T16:15:00Z', updatedAt: '2024-02-06T16:15:00Z' },
-  { id: '24', name: 'Victor Frankenstein', email: 'victor.frankenstein@example.com', status: 'active', createdAt: '2024-02-07T11:45:00Z', updatedAt: '2024-02-07T11:45:00Z' },
-  { id: '25', name: 'Wendy Darling', email: 'wendy.darling@example.com', status: 'active', createdAt: '2024-02-08T13:00:00Z', updatedAt: '2024-02-08T13:00:00Z' },
+  {
+    id: '1',
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    status: 'active',
+    createdAt: '2024-01-15T10:00:00Z',
+    updatedAt: '2024-01-15T10:00:00Z',
+  },
+  {
+    id: '2',
+    name: 'Jane Smith',
+    email: 'jane.smith@example.com',
+    status: 'active',
+    createdAt: '2024-01-16T11:30:00Z',
+    updatedAt: '2024-01-16T11:30:00Z',
+  },
+  {
+    id: '3',
+    name: 'Bob Johnson',
+    email: 'bob.johnson@example.com',
+    status: 'inactive',
+    createdAt: '2024-01-17T09:15:00Z',
+    updatedAt: '2024-01-17T09:15:00Z',
+  },
+  {
+    id: '4',
+    name: 'Alice Williams',
+    email: 'alice.williams@example.com',
+    status: 'active',
+    createdAt: '2024-01-18T14:20:00Z',
+    updatedAt: '2024-01-18T14:20:00Z',
+  },
+  {
+    id: '5',
+    name: 'Charlie Brown',
+    email: 'charlie.brown@example.com',
+    status: 'active',
+    createdAt: '2024-01-19T08:45:00Z',
+    updatedAt: '2024-01-19T08:45:00Z',
+  },
+  {
+    id: '6',
+    name: 'Diana Prince',
+    email: 'diana.prince@example.com',
+    status: 'inactive',
+    createdAt: '2024-01-20T16:00:00Z',
+    updatedAt: '2024-01-20T16:00:00Z',
+  },
+  {
+    id: '7',
+    name: 'Ethan Hunt',
+    email: 'ethan.hunt@example.com',
+    status: 'active',
+    createdAt: '2024-01-21T12:30:00Z',
+    updatedAt: '2024-01-21T12:30:00Z',
+  },
+  {
+    id: '8',
+    name: 'Fiona Gallagher',
+    email: 'fiona.gallagher@example.com',
+    status: 'active',
+    createdAt: '2024-01-22T10:15:00Z',
+    updatedAt: '2024-01-22T10:15:00Z',
+  },
+  {
+    id: '9',
+    name: 'George Miller',
+    email: 'george.miller@example.com',
+    status: 'inactive',
+    createdAt: '2024-01-23T15:45:00Z',
+    updatedAt: '2024-01-23T15:45:00Z',
+  },
+  {
+    id: '10',
+    name: 'Hannah Montana',
+    email: 'hannah.montana@example.com',
+    status: 'active',
+    createdAt: '2024-01-24T11:00:00Z',
+    updatedAt: '2024-01-24T11:00:00Z',
+  },
+  {
+    id: '11',
+    name: 'Ivan Drago',
+    email: 'ivan.drago@example.com',
+    status: 'active',
+    createdAt: '2024-01-25T13:20:00Z',
+    updatedAt: '2024-01-25T13:20:00Z',
+  },
+  {
+    id: '12',
+    name: 'Julia Roberts',
+    email: 'julia.roberts@example.com',
+    status: 'active',
+    createdAt: '2024-01-26T09:30:00Z',
+    updatedAt: '2024-01-26T09:30:00Z',
+  },
+  {
+    id: '13',
+    name: 'Kevin Hart',
+    email: 'kevin.hart@example.com',
+    status: 'inactive',
+    createdAt: '2024-01-27T14:45:00Z',
+    updatedAt: '2024-01-27T14:45:00Z',
+  },
+  {
+    id: '14',
+    name: 'Laura Palmer',
+    email: 'laura.palmer@example.com',
+    status: 'active',
+    createdAt: '2024-01-28T10:00:00Z',
+    updatedAt: '2024-01-28T10:00:00Z',
+  },
+  {
+    id: '15',
+    name: 'Mike Ross',
+    email: 'mike.ross@example.com',
+    status: 'active',
+    createdAt: '2024-01-29T16:30:00Z',
+    updatedAt: '2024-01-29T16:30:00Z',
+  },
+  {
+    id: '16',
+    name: 'Nancy Drew',
+    email: 'nancy.drew@example.com',
+    status: 'active',
+    createdAt: '2024-01-30T11:15:00Z',
+    updatedAt: '2024-01-30T11:15:00Z',
+  },
+  {
+    id: '17',
+    name: 'Oscar Isaac',
+    email: 'oscar.isaac@example.com',
+    status: 'inactive',
+    createdAt: '2024-01-31T08:00:00Z',
+    updatedAt: '2024-01-31T08:00:00Z',
+  },
+  {
+    id: '18',
+    name: 'Pamela Anderson',
+    email: 'pamela.anderson@example.com',
+    status: 'active',
+    createdAt: '2024-02-01T12:00:00Z',
+    updatedAt: '2024-02-01T12:00:00Z',
+  },
+  {
+    id: '19',
+    name: 'Quincy Jones',
+    email: 'quincy.jones@example.com',
+    status: 'active',
+    createdAt: '2024-02-02T15:30:00Z',
+    updatedAt: '2024-02-02T15:30:00Z',
+  },
+  {
+    id: '20',
+    name: 'Rachel Green',
+    email: 'rachel.green@example.com',
+    status: 'active',
+    createdAt: '2024-02-03T09:45:00Z',
+    updatedAt: '2024-02-03T09:45:00Z',
+  },
+  {
+    id: '21',
+    name: 'Steve Rogers',
+    email: 'steve.rogers@example.com',
+    status: 'active',
+    createdAt: '2024-02-04T14:00:00Z',
+    updatedAt: '2024-02-04T14:00:00Z',
+  },
+  {
+    id: '22',
+    name: 'Tina Turner',
+    email: 'tina.turner@example.com',
+    status: 'inactive',
+    createdAt: '2024-02-05T10:30:00Z',
+    updatedAt: '2024-02-05T10:30:00Z',
+  },
+  {
+    id: '23',
+    name: 'Uma Thurman',
+    email: 'uma.thurman@example.com',
+    status: 'active',
+    createdAt: '2024-02-06T16:15:00Z',
+    updatedAt: '2024-02-06T16:15:00Z',
+  },
+  {
+    id: '24',
+    name: 'Victor Frankenstein',
+    email: 'victor.frankenstein@example.com',
+    status: 'active',
+    createdAt: '2024-02-07T11:45:00Z',
+    updatedAt: '2024-02-07T11:45:00Z',
+  },
+  {
+    id: '25',
+    name: 'Wendy Darling',
+    email: 'wendy.darling@example.com',
+    status: 'active',
+    createdAt: '2024-02-08T13:00:00Z',
+    updatedAt: '2024-02-08T13:00:00Z',
+  },
 ];
 
 // Queries guardados
@@ -80,9 +255,13 @@ let savedQueries: SavedQuery[] = [
 
 // ========== HELPERS ==========
 
-function executeGridQuery(gridId: number, query: GridQuery, page: number = 1): { data: User[]; meta: { page: number; pageSize: number; total: number; totalPages: number } } {
+function executeGridQuery(
+  gridId: number,
+  query: GridQuery,
+  page: number = 1
+): { data: User[]; meta: { page: number; pageSize: number; total: number; totalPages: number } } {
   let results = [...mockUsers];
-  
+
   // Map de operadores
   const operatorMap: Record<number, string> = {
     [OPERATORS.EQ]: 'equals',
@@ -105,19 +284,19 @@ function executeGridQuery(gridId: number, query: GridQuery, page: number = 1): {
       5: 'createdAt',
     },
   };
-  
+
   const fields = fieldMap[gridId] || {};
-  
+
   // Aplicar filtros
   if (query.filters.length > 0) {
-    results = results.filter(row => {
+    results = results.filter((row) => {
       for (const filter of query.filters) {
         const fieldKey = fields[filter.field];
         if (!fieldKey) continue;
-        
+
         const value = row[fieldKey as keyof User];
         const op = operatorMap[filter.operator];
-        
+
         switch (filter.operator) {
           case OPERATORS.EQ:
             if (value !== filter.value) return false;
@@ -126,7 +305,8 @@ function executeGridQuery(gridId: number, query: GridQuery, page: number = 1): {
             if (value === filter.value) return false;
             break;
           case OPERATORS.CONTAINS:
-            if (!String(value).toLowerCase().includes(String(filter.value).toLowerCase())) return false;
+            if (!String(value).toLowerCase().includes(String(filter.value).toLowerCase()))
+              return false;
             break;
           case OPERATORS.GT:
             if (Number(value) <= Number(filter.value)) return false;
@@ -148,32 +328,32 @@ function executeGridQuery(gridId: number, query: GridQuery, page: number = 1): {
       return true;
     });
   }
-  
+
   // Aplicar sorting
   if (query.sort.length > 0) {
     results.sort((a, b) => {
       for (const s of query.sort) {
         const fieldKey = fields[s.field];
         if (!fieldKey) continue;
-        
+
         const aVal = a[fieldKey as keyof User];
         const bVal = b[fieldKey as keyof User];
         const dir = s.direction === SORT_DIRECTION.ASC ? 1 : -1;
-        
+
         if (aVal < bVal) return -1 * dir;
         if (aVal > bVal) return 1 * dir;
       }
       return 0;
     });
   }
-  
+
   // Aplicar paginación
   const total = results.length;
   const pageSize = query.pagination.pageSize;
   const totalPages = Math.ceil(total / pageSize);
   const start = (page - 1) * pageSize;
   const data = results.slice(start, start + pageSize);
-  
+
   return {
     data,
     meta: { page, pageSize, total, totalPages },
@@ -184,7 +364,7 @@ function executeGridQuery(gridId: number, query: GridQuery, page: number = 1): {
 
 export const handlers = [
   // GET /api/v1/users - método original (para compatibilidad)
-/*   http.get('/api/v1/users', async ({ request }) => {
+  /*   http.get('/api/v1/users', async ({ request }) => {
     await delay(500);
     const url = new URL(request.url);
     const page = Number(url.searchParams.get('page')) || 1;
@@ -285,17 +465,17 @@ export const handlers = [
   // POST /api/v1/grid/data - ejecutar query en el grid
   http.post('/api/v1/grid/data', async ({ request }) => {
     await delay(300);
-    
-    const body = await request.json() as {
+
+    const body = (await request.json()) as {
       gridId: number;
       query: GridQuery;
       page?: number;
     };
-    
+
     const { gridId, query, page = 1 } = body;
-    
+
     const result = executeGridQuery(gridId, query, page);
-    
+
     return HttpResponse.json({
       success: true,
       data: result.data,
@@ -306,24 +486,20 @@ export const handlers = [
   // GET /api/v1/queries - listar queries de un grid
   http.get('/api/v1/queries', async ({ request }) => {
     await delay(200);
-    
+
     const url = new URL(request.url);
     const gridId = Number(url.searchParams.get('gridId'));
     const userId = url.searchParams.get('userId') || 'anonymous';
-    
+
     if (!gridId) {
-      return HttpResponse.json(
-        { success: false, error: 'gridId es requerido' },
-        { status: 400 }
-      );
+      return HttpResponse.json({ success: false, error: 'gridId es requerido' }, { status: 400 });
     }
-    
+
     // Filtrar queries: propias + públicas del grid
-    const queries = savedQueries.filter(q => 
-      q.gridId === gridId && 
-      (q.isPublic || q.userId === userId)
+    const queries = savedQueries.filter(
+      (q) => q.gridId === gridId && (q.isPublic || q.userId === userId)
     );
-    
+
     return HttpResponse.json({
       success: true,
       data: queries,
@@ -333,16 +509,13 @@ export const handlers = [
   // GET /api/v1/queries/:id - obtener query específico
   http.get('/api/v1/queries/:id', async ({ params }) => {
     await delay(200);
-    
-    const query = savedQueries.find(q => q['id'] === params['id']);
-    
+
+    const query = savedQueries.find((q) => q['id'] === params['id']);
+
     if (!query) {
-      return HttpResponse.json(
-        { success: false, error: 'Query no encontrado' },
-        { status: 404 }
-      );
+      return HttpResponse.json({ success: false, error: 'Query no encontrado' }, { status: 404 });
     }
-    
+
     return HttpResponse.json({
       success: true,
       data: query,
@@ -352,17 +525,17 @@ export const handlers = [
   // POST /api/v1/queries - crear query
   http.post('/api/v1/queries', async ({ request }) => {
     await delay(300);
-    
-    const body = await request.json() as SavedQuery;
+
+    const body = (await request.json()) as SavedQuery;
     const userId = 'user-1'; // Simulado
-    
+
     // Si es default, quitar default de otros
     if (body.isDefault) {
-      savedQueries = savedQueries.map(q => 
+      savedQueries = savedQueries.map((q) =>
         q.gridId === body.gridId ? { ...q, isDefault: false } : q
       );
     }
-    
+
     const newQuery: SavedQuery = {
       id: String(Date.now()),
       gridId: body.gridId,
@@ -375,9 +548,9 @@ export const handlers = [
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    
+
     savedQueries.push(newQuery);
-    
+
     return HttpResponse.json({
       success: true,
       data: newQuery,
@@ -387,30 +560,27 @@ export const handlers = [
   // PUT /api/v1/queries/:id - actualizar query
   http.put('/api/v1/queries/:id', async ({ params, request }) => {
     await delay(300);
-    
-    const body = await request.json() as Partial<SavedQuery>;
-    const index = savedQueries.findIndex(q => q['id'] === params['id']);
-    
+
+    const body = (await request.json()) as Partial<SavedQuery>;
+    const index = savedQueries.findIndex((q) => q['id'] === params['id']);
+
     if (index === -1) {
-      return HttpResponse.json(
-        { success: false, error: 'Query no encontrado' },
-        { status: 404 }
-      );
+      return HttpResponse.json({ success: false, error: 'Query no encontrado' }, { status: 404 });
     }
-    
+
     // Si es default, quitar default de otros
     if (body.isDefault) {
-      savedQueries = savedQueries.map(q => 
+      savedQueries = savedQueries.map((q) =>
         q.gridId === savedQueries[index].gridId ? { ...q, isDefault: false } : q
       );
     }
-    
+
     savedQueries[index] = {
       ...savedQueries[index],
       ...body,
       updatedAt: new Date().toISOString(),
     };
-    
+
     return HttpResponse.json({
       success: true,
       data: savedQueries[index],
@@ -420,18 +590,15 @@ export const handlers = [
   // DELETE /api/v1/queries/:id - eliminar query
   http.delete('/api/v1/queries/:id', async ({ params }) => {
     await delay(200);
-    
-    const index = savedQueries.findIndex(q => q['id'] === params['id']);
-    
+
+    const index = savedQueries.findIndex((q) => q['id'] === params['id']);
+
     if (index === -1) {
-      return HttpResponse.json(
-        { success: false, error: 'Query no encontrado' },
-        { status: 404 }
-      );
+      return HttpResponse.json({ success: false, error: 'Query no encontrado' }, { status: 404 });
     }
-    
+
     savedQueries.splice(index, 1);
-    
+
     return HttpResponse.json({
       success: true,
       data: null,
@@ -441,7 +608,7 @@ export const handlers = [
   // ========== AUTH HANDLERS ==========
 
   // POST /api/v1/auth/login
-/*   http.post('/api/v1/auth/login', async ({ request }) => {
+  /*   http.post('/api/v1/auth/login', async ({ request }) => {
     await delay(500);
     
     const body = await request.json() as { email: string; password: string };
@@ -476,8 +643,8 @@ export const handlers = [
   // POST /api/v1/auth/register
   http.post('/api/v1/auth/register', async ({ request }) => {
     await delay(500);
-    
-    const body = await request.json() as { email: string; password: string; name: string };
+
+    const body = (await request.json()) as { email: string; password: string; name: string };
     const { email, name } = body;
 
     // Mock registration
@@ -502,9 +669,9 @@ export const handlers = [
   // POST /api/v1/auth/refresh
   http.post('/api/v1/auth/refresh', async ({ request }) => {
     await delay(200);
-    
-    const body = await request.json() as { refreshToken: string };
-    
+
+    const body = (await request.json()) as { refreshToken: string };
+
     if (body.refreshToken) {
       return HttpResponse.json({
         success: true,
@@ -515,10 +682,7 @@ export const handlers = [
       });
     }
 
-    return HttpResponse.json(
-      { success: false, error: 'Refresh token inválido' },
-      { status: 401 }
-    );
+    return HttpResponse.json({ success: false, error: 'Refresh token inválido' }, { status: 401 });
   }),
 
   // POST /api/v1/auth/logout
@@ -551,7 +715,7 @@ export const handlers = [
   // GET /api/v1/screens/:screenId - obtener metadata + traducciones de una pantalla
   http.get('/api/v1/screens/:screenId', async ({ params, request }) => {
     await delay(300);
-    
+
     const url = new URL(request.url);
     const lang = url.searchParams.get('lang') || 'en';
     const screenId = params['screenId'];
@@ -560,8 +724,8 @@ export const handlers = [
     const translations: Record<string, Record<string, Record<string, string>>> = {
       login: {
         en: {
-          'title': 'Nova',
-          'subtitle': 'Sign in to your account',
+          title: 'Nova',
+          subtitle: 'Sign in to your account',
           'form.name.label': 'Full name',
           'form.email.label': 'Email address',
           'form.password.label': 'Password',
@@ -576,8 +740,8 @@ export const handlers = [
           'error.connection': 'Connection error',
         },
         es: {
-          'title': 'Nova',
-          'subtitle': 'Iniciar sesión',
+          title: 'Nova',
+          subtitle: 'Iniciar sesión',
           'form.name.label': 'Nombre completo',
           'form.email.label': 'Correo electrónico',
           'form.password.label': 'Contraseña',
@@ -592,8 +756,8 @@ export const handlers = [
           'error.connection': 'Error de conexión',
         },
         pt: {
-          'title': 'Nova',
-          'subtitle': 'Entrar na conta',
+          title: 'Nova',
+          subtitle: 'Entrar na conta',
           'form.name.label': 'Nome completo',
           'form.email.label': 'Endereço de email',
           'form.password.label': 'Senha',
@@ -608,8 +772,8 @@ export const handlers = [
           'error.connection': 'Erro de conexão',
         },
         fr: {
-          'title': 'Nova',
-          'subtitle': 'Se connecter',
+          title: 'Nova',
+          subtitle: 'Se connecter',
           'form.name.label': 'Nom complet',
           'form.email.label': 'Adresse email',
           'form.password.label': 'Mot de passe',
@@ -624,8 +788,8 @@ export const handlers = [
           'error.connection': 'Erreur de connexion',
         },
         it: {
-          'title': 'Nova',
-          'subtitle': 'Accedi al tuo account',
+          title: 'Nova',
+          subtitle: 'Accedi al tuo account',
           'form.name.label': 'Nome completo',
           'form.email.label': 'Indirizzo email',
           'form.password.label': 'Password',
@@ -642,7 +806,7 @@ export const handlers = [
       },
       users: {
         en: {
-          'title': 'Users',
+          title: 'Users',
           'toolbar.save': 'Save',
           'toolbar.create': 'Create',
           'toolbar.delete': 'Delete',
@@ -675,7 +839,7 @@ export const handlers = [
           'detail.title': 'User',
         },
         es: {
-          'title': 'Usuarios',
+          title: 'Usuarios',
           'toolbar.save': 'Salvar',
           'toolbar.create': 'Crear',
           'toolbar.delete': 'Borrar',
@@ -708,7 +872,7 @@ export const handlers = [
           'detail.title': 'Usuario',
         },
         pt: {
-          'title': 'Usuários',
+          title: 'Usuários',
           'toolbar.save': 'Salvar',
           'toolbar.create': 'Criar',
           'toolbar.delete': 'Excluir',
@@ -734,7 +898,7 @@ export const handlers = [
           'query.select': 'Selecionar query...',
         },
         fr: {
-          'title': 'Utilisateurs',
+          title: 'Utilisateurs',
           'toolbar.save': 'Enregistrer',
           'toolbar.create': 'Créer',
           'toolbar.delete': 'Supprimer',
@@ -760,7 +924,7 @@ export const handlers = [
           'query.select': 'Sélectionner une requête...',
         },
         it: {
-          'title': 'Utenti',
+          title: 'Utenti',
           'toolbar.save': 'Salva',
           'toolbar.create': 'Crea',
           'toolbar.delete': 'Elimina',
@@ -790,13 +954,11 @@ export const handlers = [
 
     const screenTranslations = translations[screenId as keyof typeof translations];
     if (!screenTranslations) {
-      return HttpResponse.json(
-        { success: false, error: 'Screen not found' },
-        { status: 404 }
-      );
+      return HttpResponse.json({ success: false, error: 'Screen not found' }, { status: 404 });
     }
 
-    const langTranslations = screenTranslations[lang as keyof typeof screenTranslations] || screenTranslations['en'];
+    const langTranslations =
+      screenTranslations[lang as keyof typeof screenTranslations] || screenTranslations['en'];
 
     return HttpResponse.json({
       success: true,

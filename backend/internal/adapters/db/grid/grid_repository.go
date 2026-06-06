@@ -145,41 +145,41 @@ func (r *PgGridRepository) ExecuteQuery(ctx context.Context, baseQuery string, c
 
 			switch f.Operator {
 			case griddomain.OP_EQ:
-				whereClause += fmt.Sprintf("%s = $%d", f.FieldID, argIndex)
+				whereClause += fmt.Sprintf("%s = $%d", f.Field, argIndex)
 				args = append(args, f.Value)
 				argIndex++
 			case griddomain.OP_NE:
-				whereClause += fmt.Sprintf("%s != $%d", f.FieldID, argIndex)
+				whereClause += fmt.Sprintf("%s != $%d", f.Field, argIndex)
 				args = append(args, f.Value)
 				argIndex++
 			case griddomain.OP_CONTAINS:
-				whereClause += fmt.Sprintf("%s ILIKE $%d", f.FieldID, argIndex)
+				whereClause += fmt.Sprintf("%s ILIKE $%d", f.Field, argIndex)
 				args = append(args, "%"+fmt.Sprintf("%v", f.Value)+"%")
 				argIndex++
 			case griddomain.OP_GT:
-				whereClause += fmt.Sprintf("%s > $%d", f.FieldID, argIndex)
+				whereClause += fmt.Sprintf("%s > $%d", f.Field, argIndex)
 				args = append(args, f.Value)
 				argIndex++
 			case griddomain.OP_LT:
-				whereClause += fmt.Sprintf("%s < $%d", f.FieldID, argIndex)
+				whereClause += fmt.Sprintf("%s < $%d", f.Field, argIndex)
 				args = append(args, f.Value)
 				argIndex++
 			case griddomain.OP_GTE:
-				whereClause += fmt.Sprintf("%s >= $%d", f.FieldID, argIndex)
+				whereClause += fmt.Sprintf("%s >= $%d", f.Field, argIndex)
 				args = append(args, f.Value)
 				argIndex++
 			case griddomain.OP_LTE:
-				whereClause += fmt.Sprintf("%s <= $%d", f.FieldID, argIndex)
+				whereClause += fmt.Sprintf("%s <= $%d", f.Field, argIndex)
 				args = append(args, f.Value)
 				argIndex++
 			case griddomain.OP_IN:
-				whereClause += fmt.Sprintf("%s = ANY($%d)", f.FieldID, argIndex)
+				whereClause += fmt.Sprintf("%s = ANY($%d)", f.Field, argIndex)
 				args = append(args, f.Value)
 				argIndex++
 			case griddomain.OP_IS_NULL:
-				whereClause += fmt.Sprintf("%s IS NULL", f.FieldID)
+				whereClause += fmt.Sprintf("%s IS NULL", f.Field)
 			case griddomain.OP_IS_NOT_NULL:
-				whereClause += fmt.Sprintf("%s IS NOT NULL", f.FieldID)
+				whereClause += fmt.Sprintf("%s IS NOT NULL", f.Field)
 			}
 		}
 
@@ -203,7 +203,7 @@ func (r *PgGridRepository) ExecuteQuery(ctx context.Context, baseQuery string, c
 			if s.Direction == griddomain.SORT_DESC {
 				dir = "DESC"
 			}
-			orderClause += fmt.Sprintf("%s %s", s.FieldID, dir)
+			orderClause += fmt.Sprintf("%s %s", s.Field, dir)
 		}
 
 		// Build LIMIT/OFFSET

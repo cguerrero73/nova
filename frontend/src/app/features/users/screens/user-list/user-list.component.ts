@@ -7,7 +7,7 @@ import { TranslationService } from '@core/services/translation.service';
 import { UiStore } from '@core/stores/ui.store';
 import { GRID_IDS } from '@core/constants/grids';
 import { User } from '../../models/user.model';
-import { SavedQuery, GridQuery } from '@core/models/query.model';
+import { SavedQuery, GridQuery, GridColumn } from '@core/models/query.model';
 import { DataGridComponent, GridMeta } from '@shared/components/data-grid/data-grid.component';
 import { QueryBuilderComponent } from '@shared/components/query-builder/query-builder.component';
 import { ToolbarComponent } from '@shared/components/toolbar/toolbar.component';
@@ -132,31 +132,82 @@ export class UserListComponent implements OnInit {
   // Columnas del grid (se construyen con traducciones en ngOnInit)
   columns: ColumnDef<UserRow>[] = [];
 
+  // Campos del grid cargados del backend (para construir columnas dinámicamente)
+  gridColumns = signal<GridColumn[]>([]);
+
+  // Nombre del grid para esta pantalla
+  readonly GRID_NAME = 'BMUSER';
+
   ngOnInit() {
-    // Cargar traducciones de users
-    const lang = this.translate.getLanguage();
-    console.log('[UserList] Loading translations, language:', lang);
+    console.log('[UserList] Starting unified flow for grid:', this.GRID_NAME);
+    
+    // FLUJO UNIFICADO:
+    // 1. Cargar traducciones
+    // 2. Cargar config del grid por nombre → obtener metadata de campos
+    // 3. Construir columnas desde campos del backend
+    // 4. Cargar queries del grid
+    // 5. Ejecutar query default
     
     this.translate.load('users').subscribe({
       next: (translations) => {
         console.log('[UserList] Translations loaded:', translations);
         this.t = translations;
-        // Construir tabs, form fields y columns con traducciones
         this.buildTabs();
         this.buildFormFields();
-        this.buildColumns();
+        
+        // Continuar con el flujo: cargar config del grid
+        this.loadGridConfig();
       },
       error: (err) => {
         console.error('[UserList] Error loading translations:', err);
       }
     });
+  }
 
-    this.queryService.loadByGridId(GRID_IDS.USERS).subscribe(() => {
-      const defaultQuery = this.queryService.queries().find(q => q.isDefault);
-      if (defaultQuery) {
-        this.selectedQueryId.set(defaultQuery.id);
-        this.executeQuery(defaultQuery.query);
-      } else {
+
+  // PASO 2: Cargar config del grid por nombre
+  private loadGridConfig(): void {
+    console.log('[UserList] Step 2: Loading grid config for', this.GRID_NAME);
+    
+    this.queryService.getFields(this.GRID_NAME).subscribe({
+      next: (columns) => {
+        console.log('[UserList] Grid config loaded, columns:', columns);
+        this.gridColumns.set(columns);
+        
+        // Construir columnas dinámicamente desde el backend
+        this.buildColumnsFromBackend(columns);
+        
+        // Continuar con el flujo: cargar queries
+        this.loadGridQueries();
+      },
+      error: (err) => {
+        console.error('[UserList] Error loading grid config:', err);
+        // Fallback: usar columnas por defecto
+        this.buildColumns();
+        this.loadGridQueries();
+      }
+    });
+  }
+
+  // PASO 3: Cargar queries del grid
+  private loadGridQueries(): void {
+    console.log('[UserList] Step 3: Loading queries for gridId', GRID_IDS.USERS);
+    
+    this.queryService.loadByGridId(GRID_IDS.USERS).subscribe({
+      next: (queries) => {
+        console.log('[UserList] Queries loaded:', queries.length);
+        
+        // Buscar query default
+        const defaultQuery = queries.find(q => q.isDefault);
+        if (defaultQuery) {
+          this.selectedQueryId.set(defaultQuery.id);
+          this.executeQuery(defaultQuery.query);
+        } else {
+          this.loadDefaultData();
+        }
+      },
+      error: (err) => {
+        console.error('[UserList] Error loading queries:', err);
         this.loadDefaultData();
       }
     });
@@ -187,7 +238,7 @@ export class UserListComponent implements OnInit {
     ];
   }
 
-  // Construir columnas del grid con traducciones
+  // Construir columnas del grid con traducciones (fallback si no hay campos del backend)
   private buildColumns(): void {
     this.columns = [
       {
@@ -223,6 +274,58 @@ export class UserListComponent implements OnInit {
         },
       },
     ];
+  }
+
+  // Construir columnas del grid desde campos del backend
+  private buildColumnsFromBackend(columns: GridColumn[]): void {
+    console.log('[UserList] Building columns from backend, count:', columns.length);
+    
+    this.columns = columns.map((col) => {
+      const columnDef: ColumnDef<UserRow> = {
+        id: String(col.id),
+        accessorKey: col.key,
+        header: col.label,
+        size: this.getColumnSize(col.type),
+      };
+      
+      // Agregar cell renderer según tipo de dato
+      if (col.type === 'date') {
+        columnDef.cell = (info: { getValue: () => unknown }) => {
+          const value = info.getValue();
+          if (!value) return '';
+          const date = new Date(value as string);
+          return date.toLocaleDateString();
+        };
+      }
+      
+      if (col.type === 'boolean') {
+        columnDef.cell = (info: { getValue: () => unknown }) => {
+          const value = info.getValue() as boolean;
+          return value ? '✓' : '✗';
+        };
+      }
+      
+      if (col.type === 'select') {
+        columnDef.cell = (info: { getValue: () => unknown }) => {
+          return String(info.getValue() ?? '');
+        };
+      }
+      
+      return columnDef;
+    });
+    
+    console.log('[UserList] Columns built:', this.columns.length);
+  }
+
+  // Obtener tamaño de columna según tipo de dato
+  private getColumnSize(type: GridColumn['type']): number {
+    switch (type) {
+      case 'number': return 100;
+      case 'date': return 120;
+      case 'boolean': return 80;
+      case 'string':
+      default: return 200;
+    }
   }
 
   loadDefaultData() {
