@@ -24,9 +24,12 @@ import (
 	// DB adapters (repositories)
 	authdb "github.com/nova/backend/internal/adapters/db/auth"
 	eventsdb "github.com/nova/backend/internal/adapters/db/events"
+	fieldsdb "github.com/nova/backend/internal/adapters/db/fields"
+	griddb "github.com/nova/backend/internal/adapters/db/grid"
 	objectsdb "github.com/nova/backend/internal/adapters/db/objects"
 	orgsdb "github.com/nova/backend/internal/adapters/db/organizations"
 	partsdb "github.com/nova/backend/internal/adapters/db/parts"
+	queriesdb "github.com/nova/backend/internal/adapters/db/queries"
 	stocksdb "github.com/nova/backend/internal/adapters/db/stocks"
 	storesdb "github.com/nova/backend/internal/adapters/db/stores"
 	structuredb "github.com/nova/backend/internal/adapters/db/structure"
@@ -36,9 +39,11 @@ import (
 	// Domain services
 	"github.com/nova/backend/internal/domain/auth"
 	"github.com/nova/backend/internal/domain/events"
+	"github.com/nova/backend/internal/domain/grid"
 	"github.com/nova/backend/internal/domain/objects"
 	"github.com/nova/backend/internal/domain/organizations"
 	"github.com/nova/backend/internal/domain/parts"
+	"github.com/nova/backend/internal/domain/queries"
 	"github.com/nova/backend/internal/domain/stocks"
 	"github.com/nova/backend/internal/domain/stores"
 	"github.com/nova/backend/internal/domain/structure"
@@ -59,11 +64,9 @@ type Container struct {
 	StockHandler     *stocksapi.StockHandler
 	EventHandler     *eventsapi.EventHandler
 	SyscodeHandler   *syscodesapi.SysCodeHandler
-
-	// Stub handlers (no domain dependencies)
-	ScreenHandler  *screensapi.ScreenHandler
-	QueriesHandler *queriesapi.QueriesHandler
-	GridHandler    *gridapi.GridHandler
+	ScreenHandler    *screensapi.ScreenHandler
+	QueriesHandler   *queriesapi.QueriesHandler
+	GridHandler      *gridapi.GridHandler
 }
 
 // NewContainer wires all dependencies
@@ -82,6 +85,9 @@ func NewContainer(pool *pgxpool.Pool, cfg *config.Config) *Container {
 	binStockRepo := stocksdb.NewPgBinStockRepository(pool)
 	eventRepo := eventsdb.NewPgEventRepository(pool)
 	syscodeRepo := syscodesdb.NewPgSysCodeRepository(pool)
+	queryRepo := queriesdb.NewPgQueryRepository(pool)
+	gridRepo := griddb.NewPgGridRepository(pool)
+	fieldRepo := fieldsdb.NewPgFieldRepository(pool)
 
 	// Domain services
 	authService := auth.NewAuthService(authUserRepo, authSessionRepo, cfg.JWT)
@@ -94,12 +100,11 @@ func NewContainer(pool *pgxpool.Pool, cfg *config.Config) *Container {
 	stockService := stocks.NewStockService(stockRepo, binStockRepo)
 	eventService := events.NewEventService(eventRepo)
 	syscodeService := syscodes.NewSysCodeService(syscodeRepo)
+	queryService := queries.NewService(queryRepo)
+	gridService := grid.NewServiceWithFields(gridRepo, fieldRepo)
 
 	// API adapters (handlers)
 	return &Container{
-		ScreenHandler:    screensapi.NewScreenHandler(),
-		QueriesHandler:   queriesapi.NewQueriesHandler(),
-		GridHandler:      gridapi.NewGridHandler(),
 		AuthHandler:      authapi.NewAuthHandler(authService),
 		UserHandler:      usersapi.NewUserHandler(userService),
 		OrgHandler:       orgsapi.NewOrganizationHandler(orgService),
@@ -110,6 +115,9 @@ func NewContainer(pool *pgxpool.Pool, cfg *config.Config) *Container {
 		StockHandler:     stocksapi.NewStockHandler(stockService),
 		EventHandler:     eventsapi.NewEventHandler(eventService),
 		SyscodeHandler:   syscodesapi.NewSysCodeHandler(syscodeService),
+		ScreenHandler:    screensapi.NewScreenHandler(),
+		QueriesHandler:   queriesapi.NewQueriesHandler(queryService),
+		GridHandler:      gridapi.NewGridHandler(gridService),
 	}
 }
 
