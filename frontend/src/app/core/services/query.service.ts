@@ -9,7 +9,7 @@ import {
   PaginatedResponse,
   GridConfigResponse,
 } from '@core/models/query.model';
-import { GridId, GRID_IDS } from '@core/constants/grids';
+import { GRID_IDS } from '@core/constants/grids';
 import { getGridFields } from '@core/constants/grids';
 
 // Cache para fields por nombre de grid
@@ -134,7 +134,7 @@ export class QueryService {
     }
 
     // Llamar al backend para obtener la config usando el nombre del grid
-    return this.api.postRaw<GridConfigResponse>(`/grid/config/${gridName}`, {}).pipe(
+    return this.api.getRaw<GridConfigResponse>(`/grid/config/${gridName}`).pipe(
       map((response) => {
         const columns = response?.config?.columns || [];
         fieldsCache.set(gridName, columns);

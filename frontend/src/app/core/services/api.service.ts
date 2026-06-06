@@ -25,6 +25,11 @@ export class ApiService {
     return this.http.get<ApiResponse<T>>(`${this.baseUrl}${path}/${id}`);
   }
 
+  // GET raw sin wrapper ApiResponse (para endpoints como /grid/config/:name)
+  getRaw<T>(path: string): Observable<T> {
+    return this.http.get<T>(`${this.baseUrl}${path}`);
+  }
+
   post<T>(path: string, body: unknown): Observable<ApiResponse<T>> {
     return this.http.post<ApiResponse<T>>(`${this.baseUrl}${path}`, body);
   }
