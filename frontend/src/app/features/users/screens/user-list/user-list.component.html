@@ -35,7 +35,6 @@
         [style.background-color]="'var(--color-background)'"
         [style.color]="'var(--color-text)'"
       >
-        <option value="">{{ t['query.select'] || 'Seleccionar query...' }}</option>
         @for (q of queryService.queries(); track q.id) {
           <option [value]="q.id">{{ q.name }}{{ q.isDefault ? ' (default)' : '' }}</option>
         }
