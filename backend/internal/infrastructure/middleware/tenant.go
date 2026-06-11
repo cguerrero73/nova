@@ -1,8 +1,10 @@
 package middleware
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -12,6 +14,7 @@ import (
 
 const TenantContextKey = "tenant"
 
+// TenantMiddleware extracts tenant from request and sets up tenant context
 type TenantMiddleware struct {
 	pool *pgxpool.Pool
 }
@@ -43,11 +46,17 @@ func (m *TenantMiddleware) ExtractTenant() fiber.Handler {
 		}
 
 		if tenant != "" {
+			// Store in Fiber locals (accessible via c.Locals)
 			c.Locals(TenantContextKey, tenant)
+			log.Printf("[TenantMiddleware] Stored tenant='%s' in c.Locals", tenant)
+
+			// Store tenant in Go context for propagation to repositories
+			// Use the SAME type as in db package to ensure key matching
+			ctx := context.WithValue(c.Context(), db.TenantContextKey{}, tenant)
+			c.SetUserContext(ctx)
+			log.Printf("[TenantMiddleware] Set c.SetUserContext with tenant='%s'", tenant)
 
 			// Acquire a connection and set search_path for this request.
-			// The connection is stored in c.Context() (*fasthttp.RequestCtx).
-			// It MUST be released after the handler chain completes.
 			if err := db.SetTenantSchema(c.Context(), m.pool, tenant); err != nil {
 				return c.Status(500).JSON(fiber.Map{
 					"success": false,
@@ -60,14 +69,13 @@ func (m *TenantMiddleware) ExtractTenant() fiber.Handler {
 		}
 
 		// Continue to the next handler, then release the connection
-		// when this middleware returns (after all downstream handlers).
 		defer db.ReleaseTenantConn(c.Context())
 
 		return c.Next()
 	}
 }
 
-// GetTenant retrieves the tenant code from context
+// GetTenant retrieves the tenant code from Fiber context
 func GetTenant(c *fiber.Ctx) string {
 	if tenant, ok := c.Locals(TenantContextKey).(string); ok {
 		return tenant

@@ -50,15 +50,15 @@ type Pagination struct {
 
 // SavedQuery represents a saved query
 type SavedQuery struct {
-	ID        string    `json:"id"`
-	GridID    int       `json:"gridId"`
-	Name      string    `json:"name"`
-	UserID    *string   `json:"userId"`
-	IsPublic  bool      `json:"isPublic"`
-	IsDefault bool      `json:"isDefault"`
-	Query     GridQuery `json:"query"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID        string     `json:"id"`
+	GridID    int        `json:"gridId"`
+	Name      string     `json:"name"`
+	UserID    *string    `json:"userId"`
+	IsPublic  bool       `json:"isPublic"`
+	IsDefault bool       `json:"isDefault"`
+	Query     GridQuery  `json:"query"`
+	CreatedAt *time.Time `json:"createdAt"`
+	UpdatedAt *time.Time `json:"updatedAt"`
 }
 
 // GridRequest represents the request to execute a grid query

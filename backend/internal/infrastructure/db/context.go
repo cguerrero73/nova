@@ -28,11 +28,19 @@ const (
 	connKey   = "dbConn"
 )
 
+// TenantContextKey is the type used as context key for tenant.
+// This MUST match the type used in the middleware.
+// Using a struct type as key to avoid collisions.
+type TenantContextKey struct{}
+
 // RunInTenantTx executes a function within a tenant-scoped transaction.
 // It automatically sets the search_path for the transaction.
 // This is the recommended way to execute queries when using PgBouncer in transaction mode.
 func RunInTenantTx(ctx context.Context, pool *pgxpool.Pool, fn func(tx pgx.Tx) error) error {
 	tenant := extractTenantCode(ctx)
+
+	// DEBUG: log ctx type
+	log.Printf("[RunInTenantTx] ctx type=%T tenant='%s'", ctx, tenant)
 
 	tx, err := pool.Begin(ctx)
 	if err != nil {
@@ -46,16 +54,37 @@ func RunInTenantTx(ctx context.Context, pool *pgxpool.Pool, fn func(tx pgx.Tx) e
 			tx.Rollback(ctx)
 			return fmt.Errorf("setting search_path: %w", err)
 		}
-		log.Printf("[DEBUG] Transaction started with search_path=tenant_%s", tenant)
+		log.Printf("[TX] [%s] BEGIN + SET search_path TO %s, public", tenant, schemaName)
+	} else {
+		log.Printf("[TX] [no-tenant] BEGIN (using public schema)")
 	}
 
 	// Ejecutar la función con la transacción
 	if err := fn(tx); err != nil {
 		tx.Rollback(ctx)
+		if tenant != "" {
+			log.Printf("[TX] [%s] ROLLBACK (error: %v)", tenant, err)
+		} else {
+			log.Printf("[TX] [no-tenant] ROLLBACK (error: %v)", err)
+		}
 		return err
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		if tenant != "" {
+			log.Printf("[TX] [%s] COMMIT ERROR: %v", tenant, err)
+		} else {
+			log.Printf("[TX] [no-tenant] COMMIT ERROR: %v", err)
+		}
+		return err
+	}
+
+	if tenant != "" {
+		log.Printf("[TX] [%s] COMMIT OK", tenant)
+	} else {
+		log.Printf("[TX] [no-tenant] COMMIT OK")
+	}
+	return nil
 }
 
 // RunInTx executes a function within a transaction without tenant scope.
@@ -113,6 +142,7 @@ func SetTenantSchema(ctx *fasthttp.RequestCtx, pool *pgxpool.Pool, tenant string
 
 	ctx.SetUserValue(tenantKey, tenant)
 	ctx.SetUserValue(connKey, conn)
+	log.Printf("[SetTenantSchema] tenant='%s' stored in ctx.UserValue", tenant)
 	return nil
 }
 
@@ -135,8 +165,18 @@ func extractTenantConn(ctx context.Context) *pgxpool.Conn {
 	return nil
 }
 
-// extractTenantCode safely extracts the tenant code from the context.
+// extractTenantCode extracts the tenant code from Go context.
+// It first tries the Go context (set via context.WithValue in middleware),
+// then falls back to fasthttp.RequestCtx.UserValue for backward compatibility.
 func extractTenantCode(ctx context.Context) string {
+	// First try Go context (primary method)
+	if tenant := ctx.Value(TenantContextKey{}); tenant != nil {
+		if s, ok := tenant.(string); ok {
+			return s
+		}
+	}
+
+	// Fallback to fasthttp.RequestCtx (backward compatibility)
 	if fctx, ok := ctx.(*fasthttp.RequestCtx); ok {
 		if tenant, ok := fctx.UserValue(tenantKey).(string); ok {
 			return tenant

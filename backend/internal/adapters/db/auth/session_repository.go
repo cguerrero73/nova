@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -59,6 +61,9 @@ func (r *PgSessionRepository) FindByRefreshToken(ctx context.Context, token stri
 			&s.ExpiresAt, &s.IPAddress, &s.UserAgent,
 			&s.CreatedAt, &s.RevokedAt,
 		)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("session not found for token: %w", err)
+		}
 		if err != nil {
 			return err
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -184,9 +185,12 @@ func (r *PgGridRepository) ExecuteQuery(ctx context.Context, baseQuery string, c
 		}
 
 		// Count total
-		countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s%s", baseQuery, whereClause)
+		// Note: baseQuery already includes FROM clause (e.g., "FROM eamusers" or "FROM eamusers WHERE ...")
+		countQuery := fmt.Sprintf("SELECT COUNT(*) %s%s", baseQuery, whereClause)
+		log.Printf("[ExecuteQuery] COUNT: %s | args: %v", countQuery, args)
 		var total int
 		if err := tx.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+			log.Printf("[ExecuteQuery] COUNT ERROR: %v", err)
 			return err
 		}
 
@@ -212,12 +216,17 @@ func (r *PgGridRepository) ExecuteQuery(ctx context.Context, baseQuery string, c
 		args = append(args, pageSize, offset)
 
 		// Full query
-		fullQuery := fmt.Sprintf("SELECT %s FROM %s%s%s%s",
+		// Note: baseQuery already includes FROM clause
+		fullQuery := fmt.Sprintf("SELECT %s %s%s%s%s",
 			selectClause, baseQuery, whereClause, orderClause, limitOffset)
+
+		log.Printf("[ExecuteQuery] SELECT: %s", fullQuery)
+		log.Printf("[ExecuteQuery] ARGS: %v", args)
 
 		// Execute query
 		rows, err := tx.Query(ctx, fullQuery, args...)
 		if err != nil {
+			log.Printf("[ExecuteQuery] QUERY ERROR: %v", err)
 			return err
 		}
 		defer rows.Close()
@@ -247,6 +256,8 @@ func (r *PgGridRepository) ExecuteQuery(ctx context.Context, baseQuery string, c
 		if err := rows.Err(); err != nil {
 			return err
 		}
+
+		log.Printf("[ExecuteQuery] RESULT: total=%d rows=%d", total, len(data))
 
 		result = &griddomain.GridResult{
 			Data:     data,

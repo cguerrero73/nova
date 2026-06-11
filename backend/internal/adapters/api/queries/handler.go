@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/nova/backend/internal/domain/queries"
@@ -15,12 +17,15 @@ func NewQueriesHandler(queryService *queries.Service) *QueriesHandler {
 	return &QueriesHandler{queryService: queryService}
 }
 
-// List returns saved queries for a grid
+// List returns saved queries for a grid by name or ID
+// GET /queries?gridName=BMUSER
 // GET /queries?gridId=1
 func (h *QueriesHandler) List(c *fiber.Ctx) error {
+	gridName := c.Query("gridName")
 	gridID := c.QueryInt("gridId", 0)
-	if gridID == 0 {
-		return c.Status(400).JSON(errors.New("BAD_REQUEST", "gridId is required", 400))
+
+	if gridName == "" && gridID == 0 {
+		return c.Status(400).JSON(errors.New("BAD_REQUEST", "gridName or gridId is required", 400))
 	}
 
 	// Get user from context (set by auth middleware)
@@ -29,8 +34,17 @@ func (h *QueriesHandler) List(c *fiber.Ctx) error {
 		userCode = "anonymous"
 	}
 
-	result, err := h.queryService.List(c.Context(), gridID, userCode)
+	var result []*queries.SavedQuery
+	var err error
+
+	if gridID > 0 {
+		result, err = h.queryService.List(c.Context(), gridID, userCode)
+	} else {
+		result, err = h.queryService.ListByGridName(c.Context(), gridName, userCode)
+	}
+
 	if err != nil {
+		fmt.Printf("[ERROR] List queries failed - gridName=%s gridID=%d user=%s error=%v\n", gridName, gridID, userCode, err)
 		return c.Status(500).JSON(errors.ErrInternal)
 	}
 
@@ -135,8 +149,8 @@ func getUserCode(c *fiber.Ctx) string {
 	// Check for user claims set by auth middleware
 	if user := c.Locals("user"); user != nil {
 		if claims, ok := user.(map[string]interface{}); ok {
-			if code, ok := claims["userCode"]; ok {
-				return code.(string)
+			if code, ok := claims["userCode"].(string); ok {
+				return code
 			}
 		}
 	}

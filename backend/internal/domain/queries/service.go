@@ -13,6 +13,7 @@ type Service struct {
 // QueryRepository defines the interface (same as domain repo)
 type QueryRepository interface {
 	List(ctx context.Context, gridID int, userID string) ([]*SavedQuery, error)
+	ListByGridName(ctx context.Context, gridName string, userID string) ([]*SavedQuery, error)
 	GetByID(ctx context.Context, id string) (*SavedQuery, error)
 	Create(ctx context.Context, query *SavedQuery) error
 	Update(ctx context.Context, query *SavedQuery) error
@@ -25,9 +26,14 @@ func NewService(repo QueryRepository) *Service {
 	return &Service{repo: repo}
 }
 
-// List returns saved queries for a grid
+// List returns saved queries for a grid by ID
 func (s *Service) List(ctx context.Context, gridID int, userID string) ([]*SavedQuery, error) {
 	return s.repo.List(ctx, gridID, userID)
+}
+
+// ListByGridName returns saved queries for a grid by name
+func (s *Service) ListByGridName(ctx context.Context, gridName string, userID string) ([]*SavedQuery, error) {
+	return s.repo.ListByGridName(ctx, gridName, userID)
 }
 
 // GetByID returns a saved query by ID
@@ -53,8 +59,8 @@ func (s *Service) Create(ctx context.Context, req *SaveRequest) (*SavedQuery, er
 		IsPublic:  req.IsPublic,
 		IsDefault: req.IsDefault,
 		Query:     req.Query,
-		CreatedAt: now,
-		UpdatedAt: now,
+		CreatedAt: &now,
+		UpdatedAt: &now,
 	}
 
 	if err := s.repo.Create(ctx, query); err != nil {
@@ -91,7 +97,7 @@ func (s *Service) Update(ctx context.Context, id string, req *UpdateRequest) (*S
 	if req.Query != nil {
 		existing.Query = *req.Query
 	}
-	existing.UpdatedAt = time.Now()
+	existing.UpdatedAt = func() *time.Time { t := time.Now(); return &t }()
 
 	if err := s.repo.Update(ctx, existing); err != nil {
 		return nil, err

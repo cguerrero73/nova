@@ -2,15 +2,15 @@ package grid
 
 // FilterCondition represents a filter condition
 type FilterCondition struct {
-	Field    int    `json:"field"`
-	Operator int    `json:"operator"` // 1=EQ, 2=NE, 3=CONTAINS, 4=GT, 5=LT, 6=GTE, 7=LTE, 8=IN, 9=IS_NULL, 10=IS_NOT_NULL
-	Value    any    `json:"value"`
+	Field    int `json:"field"`
+	Operator int `json:"operator"` // 1=EQ, 2=NE, 3=CONTAINS, 4=GT, 5=LT, 6=GTE, 7=LTE, 8=IN, 9=IS_NULL, 10=IS_NOT_NULL
+	Value    any `json:"value"`
 }
 
 // SortCondition represents sorting configuration
 type SortCondition struct {
-	Field     int    `json:"field"`
-	Direction int    `json:"direction"` // 1=ASC, 2=DESC
+	Field     int `json:"field"`
+	Direction int `json:"direction"` // 1=ASC, 2=DESC
 }
 
 // GridQueryConfig holds query configuration from SavedQuery

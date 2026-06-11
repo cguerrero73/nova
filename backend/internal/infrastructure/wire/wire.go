@@ -101,7 +101,7 @@ func NewContainer(pool *pgxpool.Pool, cfg *config.Config) *Container {
 	eventService := events.NewEventService(eventRepo)
 	syscodeService := syscodes.NewSysCodeService(syscodeRepo)
 	queryService := queries.NewService(queryRepo)
-	gridService := grid.NewServiceWithFields(gridRepo, fieldRepo)
+	gridService := grid.NewServiceWithAll(gridRepo, fieldRepo, queryRepo)
 
 	// API adapters (handlers)
 	return &Container{

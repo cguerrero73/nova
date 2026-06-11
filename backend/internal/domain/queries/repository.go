@@ -9,6 +9,9 @@ type Repository interface {
 	// List returns saved queries for a grid (public + user's own)
 	List(ctx context.Context, gridID int, userID string) ([]*SavedQuery, error)
 
+	// ListByGridName returns saved queries for a grid by name (public + user's own)
+	ListByGridName(ctx context.Context, gridName string, userID string) ([]*SavedQuery, error)
+
 	// GetByID returns a specific saved query
 	GetByID(ctx context.Context, id string) (*SavedQuery, error)
 

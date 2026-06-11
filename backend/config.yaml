@@ -8,7 +8,7 @@ database:
 
 jwt:
   secret: ${JWT_SECRET:-your-super-secret-key-change-in-production}
-  expiry_mins: ${JWT_EXPIRY_MINS:-15}
+  expiry_mins: ${JWT_EXPIRY_MINS:-1440}
 
 server:
   port: ${SERVER_PORT:-4000}

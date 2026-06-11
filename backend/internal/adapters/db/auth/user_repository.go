@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -34,6 +36,9 @@ func (r *PgUserRepository) FindByEmail(ctx context.Context, email string) (*auth
 			&u.Status, &u.DefaultOrg, &u.NotUsed, &u.TenantID,
 			&u.CreatedAt, &u.UpdatedAt, &u.CreatedBy, &u.UpdatedBy,
 		)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("user not found for email: %w", err)
+		}
 		if err != nil {
 			return err
 		}
@@ -59,6 +64,9 @@ func (r *PgUserRepository) FindByCode(ctx context.Context, code string) (*auth.U
 			&u.Status, &u.DefaultOrg, &u.NotUsed, &u.TenantID,
 			&u.CreatedAt, &u.UpdatedAt, &u.CreatedBy, &u.UpdatedBy,
 		)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("user not found for code: %w", err)
+		}
 		if err != nil {
 			return err
 		}

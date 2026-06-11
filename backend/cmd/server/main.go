@@ -15,6 +15,7 @@ import (
 	"github.com/nova/backend/internal/config"
 	"github.com/nova/backend/internal/infrastructure/middleware"
 	"github.com/nova/backend/internal/infrastructure/wire"
+	"github.com/nova/backend/pkg/errors"
 )
 
 func main() {
@@ -193,15 +194,126 @@ func main() {
 
 func customErrorHandler(c *fiber.Ctx, err error) error {
 	code := fiber.StatusInternalServerError
+	errCode := "INTERNAL_ERROR"
+	message := "An unexpected error occurred"
+	var detail string
+
+	// Try to extract Fiber's built-in error
 	if e, ok := err.(*fiber.Error); ok {
 		code = e.Code
+		errCode = fiberErrCode(e.Code)
+		message = e.Message
+	}
+
+	// Check for AppError (custom application errors)
+	if appErr, ok := err.(*errors.AppError); ok {
+		code = appErr.GetStatus()
+		errCode = appErr.Code
+		message = appErr.Message
+		detail = appErr.Detail
+	}
+
+	// Handle Fiber's default error types
+	switch err {
+	case fiber.ErrUnauthorized:
+		code = fiber.StatusUnauthorized
+		errCode = "UNAUTHORIZED"
+		message = "Authentication required"
+	case fiber.ErrForbidden:
+		code = fiber.StatusForbidden
+		errCode = "FORBIDDEN"
+		message = "Access denied"
+	case fiber.ErrNotFound:
+		code = fiber.StatusNotFound
+		errCode = "NOT_FOUND"
+		message = "Resource not found"
+	case fiber.ErrBadRequest:
+		code = fiber.StatusBadRequest
+		errCode = "BAD_REQUEST"
+		message = "Invalid request"
+	}
+
+	// Handle database errors (pqx)
+	if detail == "" {
+		detail = classifyDBError(err)
+	}
+
+	// Log internal errors for debugging (only in development)
+	if code >= 500 {
+		log.Printf("[ERROR] %s | %s | %v", errCode, message, err)
 	}
 
 	return c.Status(code).JSON(fiber.Map{
 		"success": false,
 		"error": fiber.Map{
-			"code":    "INTERNAL_ERROR",
-			"message": err.Error(),
+			"code":    errCode,
+			"message": message,
+			"detail":  detail,
 		},
 	})
+}
+
+func fiberErrCode(status int) string {
+	switch status {
+	case fiber.StatusUnauthorized:
+		return "UNAUTHORIZED"
+	case fiber.StatusForbidden:
+		return "FORBIDDEN"
+	case fiber.StatusNotFound:
+		return "NOT_FOUND"
+	case fiber.StatusBadRequest:
+		return "BAD_REQUEST"
+	case fiber.StatusConflict:
+		return "CONFLICT"
+	case fiber.StatusUnprocessableEntity:
+		return "VALIDATION_ERROR"
+	default:
+		return "INTERNAL_ERROR"
+	}
+}
+
+func classifyDBError(err error) string {
+	if err == nil {
+		return ""
+	}
+	errStr := err.Error()
+
+	switch {
+	case containsAny(errStr, "duplicate key", "unique constraint", "23505"):
+		return "DUPLICATE_ENTRY"
+	case containsAny(errStr, "foreign key", "23503"):
+		return "FOREIGN_KEY_VIOLATION"
+	case containsAny(errStr, "not null", "23502"):
+		return "NOT_NULL_VIOLATION"
+	case containsAny(errStr, "connection refused", "dial tcp", "23514"):
+		return "DATABASE_CONNECTION_ERROR"
+	case containsAny(errStr, "syntax", "42703", "42P01", "22P02"):
+		return "DATABASE_SYNTAX_ERROR"
+	case contains(errStr, "canceling statement due to user request"):
+		return "QUERY_CANCELED"
+	default:
+		return ""
+	}
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && containsSubstring(s, substr)
+}
+
+func containsSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
+
+func containsAny(s string, substrs ...string) bool {
+	for _, substr := range substrs {
+		if containsSubstring(s, substr) {
+			return true
+		}
+	}
+	return false
 }

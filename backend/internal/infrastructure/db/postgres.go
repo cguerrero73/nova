@@ -25,6 +25,9 @@ func NewPostgresDB(cfg DatabaseConfig) (*PostgresDB, error) {
 	poolConfig.MaxConns = 20
 	poolConfig.MinConns = 5
 
+	// Enable query tracing
+	poolConfig.ConnConfig.Tracer = &QueryTracer{}
+
 	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
 	if err != nil {
 		return nil, fmt.Errorf("creating connection pool: %w", err)
