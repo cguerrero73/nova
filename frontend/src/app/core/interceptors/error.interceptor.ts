@@ -14,7 +14,18 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       // Extract server message supporting both formats:
       // - flat:  {code: "...", message: "..."}        (AppError)
       // - wrapped: {success: false, error: {code: "...", message: "..."}} (customErrorHandler)
-      const serverMsg = error.error?.error?.message || error.error?.message || '';
+      const serverData = error.error;
+      let serverMsg = '';
+
+      // Handle wrapped format: {success: false, error: {code: "...", message: "..."}}
+      if (serverData && typeof serverData === 'object' && 'error' in serverData) {
+        const inner = (serverData as any).error;
+        serverMsg = inner?.message || '';
+      }
+      // Handle flat format: {code: "...", message: "..."}
+      if (!serverMsg && serverData && typeof serverData === 'object') {
+        serverMsg = (serverData as any).message || '';
+      }
 
       if (error.error instanceof ErrorEvent) {
         // Error del cliente (network, etc)

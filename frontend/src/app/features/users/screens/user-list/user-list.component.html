@@ -42,9 +42,11 @@
       </select>
 
       <app-query-builder
+        [gridId]="GRID_IDS.USERS"
         [gridName]="'BMUSER'"
         [initialQuery]="selectedQueryForBuilder()"
         (saved)="onQuerySaved($event)"
+        (queryIdSelected)="onQueryIdSelected($event)"
       />
     </div>
   }
@@ -56,6 +58,7 @@
       <div class="h-full min-h-0 overflow-auto">
         <app-data-grid
           [columns]="columns"
+          [queryId]="selectedQueryId()"
           [data]="userService.users()"
           [meta]="gridMeta()"
           [selectedRow]="selected()"

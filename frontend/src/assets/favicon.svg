@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="6" fill="#1e1b4b"/>
+  <!-- Southern Cross real positions and colors -->
+  <!-- Gacrux (Gamma Crucis) - top - Orange-red giant M3.5III -->
+  <circle cx="15" cy="7" r="2" fill="#E07A5F"/>
+  <!-- Delta Crucis - right - Blue-white B2IV -->
+  <circle cx="23" cy="13" r="2" fill="#A8C0E0"/>
+  <!-- Acrux (Alpha Crucis) - bottom - Blue-white B1.5IV -->
+  <circle cx="16" cy="25" r="2" fill="#C4D4E8"/>
+  <!-- Mimosa (Beta Crucis) - left - Blue-white B0.5III -->
+  <circle cx="9" cy="13" r="2" fill="#B0C4DE"/>
+</svg>

@@ -1,4 +1,4 @@
-import { Component, input, output, signal, computed, ChangeDetectionStrategy, ViewChild, ElementRef, AfterViewInit, effect } from '@angular/core';
+import { Component, input, output, signal, computed, ChangeDetectionStrategy, ViewChild, ElementRef, AfterViewInit, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   createAngularTable,
@@ -9,6 +9,7 @@ import {
   Row,
   Header,
 } from '@tanstack/angular-table';
+import { GridService } from '@core/services/grid.service';
 
 export interface GridMeta {
   page: number;
@@ -26,30 +27,61 @@ export interface GridMeta {
   styleUrl: './data-grid.component.css',
 })
 export class DataGridComponent<T> implements AfterViewInit {
+  private readonly gridService = inject(GridService);
+
   @ViewChild('scrollContainer') scrollContainer?: ElementRef<HTMLDivElement>;
-  
+
+  // Inputs
   columns = input.required<ColumnDef<T>[]>();
-  data = input.required<T[]>();
+  data = input<T[]>([]); // Opcional si usa gridService
   rowKey = input<string>('id');
   enableSorting = input(true);
   // Registro seleccionado (selección simple)
   selectedRow = input<T | null>(null);
-  
+
   meta = input<GridMeta | null>(null);
   loading = input(false);
 
+  // Query ID para ejecutar (cuando se usa con GridService)
+  queryId = input<string | null>(null);
+
+  // Outputs
   rowSelect = output<T>();
   rowDoubleClick = output<T>();
   pageChange = output<number>();
 
+  // Estado interno
   sort = signal<{ id: string; desc: boolean }[]>([]);
   private previousDataLength = 0;
   private isRestoringScroll = false;
   private pendingScrollPosition = 0;
 
+  // Data del GridService (si se usa queryId)
+  readonly serviceData = computed(() => this.gridService.currentData() as T[]);
+  readonly serviceMeta = computed(() => this.gridService.meta());
+  readonly serviceLoading = computed(() => this.gridService.loading());
+
+  // Data final: usa input data o service data
+  readonly displayData = computed(() => {
+    const inputData = this.data();
+    return inputData.length > 0 ? inputData : this.serviceData();
+  });
+
+  // Meta final
+  readonly displayMeta = computed(() => {
+    const inputMeta = this.meta();
+    return inputMeta ?? this.serviceMeta();
+  });
+
+  // Loading final
+  readonly displayLoading = computed(() => {
+    const inputLoading = this.loading();
+    return inputLoading || this.serviceLoading();
+  });
+
   table = computed(() => 
     createAngularTable(() => ({
-      data: this.data(),
+      data: this.displayData(),
       columns: this.columns(),
       state: {
         sorting: this.sort(),
@@ -68,11 +100,11 @@ export class DataGridComponent<T> implements AfterViewInit {
     }))
   );
 
-  constructor() {
+constructor() {
     // Effect to detect when data changes and restore scroll position
     effect(() => {
-      const currentLength = this.data().length;
-      
+      const currentLength = this.displayData().length;
+
       // If we have more data than before and we're restoring position
       if (currentLength > this.previousDataLength && this.pendingScrollPosition > 0 && this.scrollContainer) {
         // Restore scroll position after new data is rendered
@@ -85,13 +117,13 @@ export class DataGridComponent<T> implements AfterViewInit {
           }
         });
       }
-      
+
       this.previousDataLength = currentLength;
     });
   }
 
   ngAfterViewInit() {
-    this.previousDataLength = this.data().length;
+    this.previousDataLength = this.displayData().length;
   }
 
   allRowsSelected = computed(() => {
@@ -99,7 +131,7 @@ export class DataGridComponent<T> implements AfterViewInit {
     const selected = this.selectedRow();
     if (!selected) return false;
     const selectedKey = (selected as Record<string, unknown>)[this.rowKey()];
-    return this.data().some(row => (row as Record<string, unknown>)[this.rowKey()] === selectedKey);
+    return this.displayData().some(row => (row as Record<string, unknown>)[this.rowKey()] === selectedKey);
   });
 
   totalColumns = computed(() => {
@@ -166,10 +198,10 @@ export class DataGridComponent<T> implements AfterViewInit {
     }
     
     if (distanceFromBottom < this.scrollThreshold && 
-        !this.loading() && 
-        this.meta() && 
-        this.meta()!.page < this.meta()!.totalPages) {
-      this.pageChange.emit(this.meta()!.page + 1);
+        !this.displayLoading() && 
+        this.displayMeta() && 
+        this.displayMeta()!.page < this.displayMeta()!.totalPages) {
+      this.pageChange.emit(this.displayMeta()!.page + 1);
     }
   }
 }

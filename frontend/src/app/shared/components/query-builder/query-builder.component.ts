@@ -1,4 +1,4 @@
-import { Component, input, output, signal, computed, OnInit, inject } from '@angular/core';
+import { Component, input, output, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -24,15 +24,19 @@ import { QueryService } from '@core/services/query.service';
   templateUrl: './query-builder.component.html',
   styleUrls: ['./query-builder.component.css'],
 })
-export class QueryBuilderComponent implements OnInit {
+export class QueryBuilderComponent {
   private readonly queryService = inject(QueryService);
+
   // Inputs
+  gridId = input.required<number>();
   gridName = input.required<string>();
+  queries = input<SavedQuery[]>([]);  // Queries del grid (desde el padre)
   initialQuery = input<SavedQuery | null>(null);
 
   // Outputs
   saved = output<SavedQuery>();
   closed = output<void>();
+  queryIdSelected = output<string>();
 
   // State
   isOpen = signal(false);
@@ -92,12 +96,13 @@ export class QueryBuilderComponent implements OnInit {
     return this.fields().filter((f) => f.filterable);
   });
 
-  ngOnInit() {
-    this.loadFields();
-  }
+  // Solo cargar fields cuando se abre el builder (lazy load)
 
-  // Cargar campos del backend
+  // El query builder recibe queries desde el padre, no las carga
+
+  // Cargar fields del backend (solo cuando abre el builder)
   private loadFields(): void {
+    if (this.fields().length > 0) return; // Ya cargados
     this.queryService.getFields(this.gridName()).subscribe({
       next: (columns) => this.fields.set(columns),
       error: (err) => console.error('Error loading fields:', err),
@@ -105,6 +110,9 @@ export class QueryBuilderComponent implements OnInit {
   }
 
   open(query?: SavedQuery) {
+    // Cargar fields solo cuando se abre
+    this.loadFields();
+
     if (query) {
       this.editMode.set(true);
       this.name = query.name;
