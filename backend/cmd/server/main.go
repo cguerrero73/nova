@@ -147,6 +147,9 @@ func main() {
 
 	// Queries
 	protected.Get("/queries", c.QueriesHandler.List)
+	protected.Post("/queries", c.QueriesHandler.Create)
+	protected.Put("/queries/:id", c.QueriesHandler.Update)
+	protected.Delete("/queries/:id", c.QueriesHandler.Delete)
 	protected.Post("/grid/data", c.GridHandler.ExecuteData)
 	protected.Get("/grid/config/:name", c.GridHandler.GetConfig)
 	protected.Get("/grid/config/id/:id", c.GridHandler.GetConfigByID)

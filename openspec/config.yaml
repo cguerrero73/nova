@@ -1,0 +1,61 @@
+# Nova SDD Configuration
+schema: spec-driven
+
+context: |
+  Tech stack: Angular 19 (frontend) + Go 1.22 + Fiber v2.52 (backend) + PostgreSQL 16
+  Architecture: Hexagonal (Ports & Adapters) — domain/adapters/infrastructure layers
+  Testing: Test runners present but no test files yet; MSW available for frontend mocking
+  Style: Standalone Angular components, Tailwind CSS, TanStack Table
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    - Follow existing code patterns (Hexagonal Architecture)
+  tdd: false
+  test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
+
+testing:
+  strict_tdd: false
+  detected: "2026-06-15"
+  backend:
+    runner: go test
+    framework: stretchr/testify
+    unit: false
+    integration: false
+    e2e: false
+    coverage: false
+    coverage_command: ""
+  frontend:
+    runner: ng test (Karma/Jasmine)
+    framework: Jasmine
+    unit: false
+    integration: false
+    e2e: false
+    coverage: false
+    coverage_command: ""
+  quality:
+    linter:
+      backend: golangci-lint run
+      frontend: pnpm run lint
+    type_checker:
+      backend: go build
+      frontend: tsc --noEmit
+    formatter:
+      backend: gofmt
+      frontend: prettier --write

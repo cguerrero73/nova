@@ -489,15 +489,25 @@ export class UserListComponent implements OnInit {
 
   onQuerySaved(savedQuery: SavedQuery) {
     const gridId = this.currentGridId() ?? GRID_IDS.USERS;
-    if (savedQuery.id) {
-      this.queryService.update(savedQuery.id, savedQuery).subscribe(() => {
-        this.queryService.loadByGridId(gridId);
-      });
-    } else {
-      this.queryService.save(savedQuery).subscribe(() => {
-        this.queryService.loadByGridId(gridId);
-      });
-    }
+    this.uiStore.setLoading(true);
+
+    const operation = savedQuery.id
+      ? this.queryService.update(savedQuery.id, savedQuery)
+      : this.queryService.save(savedQuery);
+
+    operation.subscribe({
+      next: () => {
+        // Recargar queries y desactivar loading
+        this.queryService.loadByGridId(gridId).subscribe({
+          complete: () => {
+            this.uiStore.setLoading(false);
+          }
+        });
+      },
+      error: () => {
+        this.uiStore.setLoading(false);
+      }
+    });
   }
 
   onQueryIdSelected(queryId: string): void {
