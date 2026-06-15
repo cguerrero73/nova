@@ -204,42 +204,60 @@ func (s *Service) ExecuteQueryByID(ctx context.Context, queryID string, page, pa
 		return nil, ErrGridNotFound
 	}
 
-	// 3. Build config from saved query's fields/filters/sort
-	config := &GridQueryConfig{
-		Fields:  savedQuery.Query.Fields,
-		Sort:    convertSort(savedQuery.Query.Sort),
-		Filters: convertFilters(savedQuery.Query.Filters),
+	// 3. Get field metadata and build ID to name map
+	fieldMap := make(map[int]string)
+	var columnNames []string
+	if s.fieldRepo != nil {
+		fields, err := s.fieldRepo.FindByGrid(ctx, grid.BaseQuery)
+		if err == nil {
+			for _, f := range fields {
+				fieldMap[f.ID] = f.FieldName
+			}
+		}
 	}
 
-	// 4. Call repo.ExecuteQuery with baseQuery from grid
-	// Note: fields is passed as nil to select all columns (matching existing ExecuteQuery behavior)
-	return s.repo.ExecuteQuery(ctx, grid.BaseQuery, nil, config.Filters, config.Sort, page, pageSize)
+	// 4. Convert field IDs to names for SELECT clause
+	columnNames = make([]string, len(savedQuery.Query.Fields))
+	for i, id := range savedQuery.Query.Fields {
+		columnNames[i] = fieldMap[id]
+	}
+
+	// 5. Build config with converted sort and filters
+	config := &GridQueryConfig{
+		Fields:  savedQuery.Query.Fields, // IDs guardados
+		Sort:    convertSort(savedQuery.Query.Sort, fieldMap),
+		Filters: convertFilters(savedQuery.Query.Filters, fieldMap),
+	}
+
+	// 5. Call repo.ExecuteQuery with baseQuery from grid
+	// Nota: se pasan columnNames (strings) porque repo.ExecuteQuery espera nombres, no IDs
+	return s.repo.ExecuteQuery(ctx, grid.BaseQuery, columnNames, config.Filters, config.Sort, page, pageSize)
 }
 
-// convertSort converts queries.QuerySort to grid.SortCondition
-func convertSort(sort []queriesdomain.QuerySort) []SortCondition {
+// convertSort converts queries.QuerySort to grid.SortCondition using fieldMap for ID→name
+func convertSort(sort []queriesdomain.QuerySort, fieldMap map[int]string) []SortCondition {
 	if len(sort) == 0 {
 		return nil
 	}
 	result := make([]SortCondition, len(sort))
 	for i, s := range sort {
 		result[i] = SortCondition{
-			Field:     s.Field,
+			Field:     fieldMap[s.Field], // convert ID to name
 			Direction: s.Direction,
 		}
 	}
 	return result
 }
 
-// convertFilters converts queries.QueryFilter to grid.FilterCondition
-func convertFilters(filters []queriesdomain.QueryFilter) []FilterCondition {
+// convertFilters converts queries.QueryFilter to grid.FilterCondition using fieldMap for ID→name
+func convertFilters(filters []queriesdomain.QueryFilter, fieldMap map[int]string) []FilterCondition {
 	if len(filters) == 0 {
 		return nil
 	}
 	result := make([]FilterCondition, len(filters))
 	for i, f := range filters {
 		result[i] = FilterCondition{
-			Field:    f.Field,
+			Field:    fieldMap[f.Field], // convert ID to name
 			Operator: f.Operator,
 			Value:    f.Value,
 		}

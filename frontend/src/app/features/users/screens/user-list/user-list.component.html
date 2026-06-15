@@ -43,6 +43,7 @@
       <app-query-builder
         [gridId]="GRID_IDS.USERS"
         [gridName]="'BMUSER'"
+        [queries]="queryService.queries()"
         [initialQuery]="selectedQueryForBuilder()"
         (saved)="onQuerySaved($event)"
         (queryIdSelected)="onQueryIdSelected($event)"

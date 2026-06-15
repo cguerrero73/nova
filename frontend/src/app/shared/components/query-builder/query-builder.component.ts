@@ -44,6 +44,11 @@ export class QueryBuilderComponent {
   activeTab = signal<'fields' | 'sort' | 'filter'>('fields');
   fields = signal<GridColumn[]>([]); // Campos cargados del backend
 
+  // Query selector state
+  selectedQueryId = signal<string | null>(null);
+  isNewQuery = signal(false);
+  isCopyMode = signal(false);
+
   // Referencias para drag-drop
   availableList: any;
   selectedList: any;
@@ -53,7 +58,13 @@ export class QueryBuilderComponent {
   isPublic = false;
   isDefault = false;
   selectedFields = signal<number[]>([]);
-  availableFieldsList = signal<number[]>([]);
+  // availableFieldsList es un computed que deriva de fields y selectedFields
+  // Se recalcula automaticamente cuando cualquiera de los dos cambia
+  availableFieldsList = computed(() => {
+    const allFields = this.fields();
+    const selected = this.selectedFields();
+    return allFields.filter(f => !selected.includes(f.id)).map(f => f.id);
+  });
   sortField: number | null = null;
   sortDirection = SORT_DIRECTION.ASC;
   filters = signal<QueryFilter[]>([]);
@@ -111,7 +122,18 @@ export class QueryBuilderComponent {
 
   open(query?: SavedQuery) {
     // Cargar fields solo cuando se abre
+    console.log('QUERY::::::' , query);
     this.loadFields();
+
+    // Reset selector state
+    this.isNewQuery.set(false);
+    this.isCopyMode.set(false);
+    this.selectedQueryId.set(null);
+
+    // Fallback to initialQuery input if no argument provided
+    if (!query && this.initialQuery()) {
+      query = this.initialQuery()!;
+    }
 
     if (query) {
       this.editMode.set(true);
@@ -121,7 +143,7 @@ export class QueryBuilderComponent {
       this.selectedFields.set([...query.query.fields]);
       this.currentSort.set([...query.query.sort]);
       this.filters.set(query.query.filters.map((f) => ({ ...f })));
-      this.updateAvailableFields();
+      this.selectedQueryId.set(query.id);
     } else {
       this.reset();
     }
@@ -142,7 +164,6 @@ export class QueryBuilderComponent {
 
     const allFieldIds = this.fields().map((f) => f.id);
     this.selectedFields.set(allFieldIds);
-    this.availableFieldsList.set([]);
 
     this.currentSort.set([]);
     this.filters.set([]);
@@ -151,11 +172,56 @@ export class QueryBuilderComponent {
     this.newFilter = { field: 0, operator: 1, value: '' };
   }
 
-  updateAvailableFields() {
-    const allFields = this.availableFields();
-    const selected = this.selectedFields();
-    const available = allFields.filter((f) => !selected.includes(f.id)).map((f) => f.id);
-    this.availableFieldsList.set(available);
+  // Cuando el usuario selecciona una query del dropdown
+  onQueryChange(queryId: string) {
+    if (!queryId) {
+      this.newQuery();
+      return;
+    }
+
+    const query = this.queries().find(q => q.id === queryId);
+    if (query) {
+      this.isNewQuery.set(false);
+      this.isCopyMode.set(false);
+      this.selectedQueryId.set(query.id);
+      this.editMode.set(true);
+      this.name = query.name;
+      this.isPublic = query.isPublic;
+      this.isDefault = query.isDefault;
+      this.selectedFields.set([...query.query.fields]);
+      this.currentSort.set([...query.query.sort]);
+      this.filters.set(query.query.filters.map((f) => ({ ...f })));
+    }
+  }
+
+  // Crear una query nueva en blanco
+  newQuery() {
+    this.isNewQuery.set(true);
+    this.isCopyMode.set(false);
+    this.selectedQueryId.set(null);
+    this.editMode.set(false);
+    this.name = '';
+    this.isPublic = false;
+    this.isDefault = false;
+
+    const allFieldIds = this.fields().map((f) => f.id);
+    this.selectedFields.set(allFieldIds);
+
+    this.currentSort.set([]);
+    this.filters.set([]);
+    this.sortField = null;
+    this.sortDirection = SORT_DIRECTION.ASC;
+    this.newFilter = { field: 0, operator: 1, value: '' };
+  }
+
+  // Copiar la query actual con un nuevo nombre
+  copyQuery() {
+    this.isNewQuery.set(false);
+    this.isCopyMode.set(true);
+    this.selectedQueryId.set(null);
+    this.editMode.set(false);
+    this.name = this.name ? `${this.name} (copia)` : '';
+    // La config (fields, sort, filters) se mantiene igual
   }
 
   getFieldLabel(fieldId: number): string {
@@ -195,8 +261,8 @@ export class QueryBuilderComponent {
         event.previousIndex,
         event.currentIndex
       );
+      // availableFieldsList es computed, se recalcula automaticamente
       this.selectedFields.set([...event.container.data]);
-      this.availableFieldsList.set([...event.previousContainer.data]);
     }
   }
 
@@ -204,7 +270,7 @@ export class QueryBuilderComponent {
   onDropAvailable(event: CdkDragDrop<number[]>) {
     if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
-      this.availableFieldsList.set([...event.container.data]);
+      // availableFieldsList es computed, se recalcula automaticamente
     } else {
       transferArrayItem(
         event.previousContainer.data,
@@ -213,7 +279,6 @@ export class QueryBuilderComponent {
         event.currentIndex
       );
       this.selectedFields.set([...event.previousContainer.data]);
-      this.availableFieldsList.set([...event.container.data]);
     }
   }
 
