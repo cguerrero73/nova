@@ -141,8 +141,18 @@ export class QueryBuilderComponent {
       this.isPublic = query.isPublic;
       this.isDefault = query.isDefault;
       this.selectedFields.set([...query.query.fields]);
-      this.currentSort.set([...query.query.sort]);
-      this.filters.set(query.query.filters.map((f) => ({ ...f })));
+      // Normalize sort: ensure field is number (backend may return as string)
+      this.currentSort.set(
+        query.query.sort.map((s) => ({ field: Number(s.field), direction: s.direction }))
+      );
+      // Normalize filters: ensure field and operator are numbers
+      this.filters.set(
+        query.query.filters.map((f) => ({
+          field: Number(f.field),
+          operator: Number(f.operator) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10,
+          value: f.value,
+        }))
+      );
       this.selectedQueryId.set(query.id);
     } else {
       this.reset();
@@ -189,8 +199,18 @@ export class QueryBuilderComponent {
       this.isPublic = query.isPublic;
       this.isDefault = query.isDefault;
       this.selectedFields.set([...query.query.fields]);
-      this.currentSort.set([...query.query.sort]);
-      this.filters.set(query.query.filters.map((f) => ({ ...f })));
+      // Normalize sort: ensure field is number (backend may return as string)
+      this.currentSort.set(
+        query.query.sort.map((s) => ({ field: Number(s.field), direction: s.direction }))
+      );
+      // Normalize filters: ensure field and operator are numbers
+      this.filters.set(
+        query.query.filters.map((f) => ({
+          field: Number(f.field),
+          operator: Number(f.operator) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10,
+          value: f.value,
+        }))
+      );
     }
   }
 
@@ -287,7 +307,7 @@ export class QueryBuilderComponent {
 
     const existing = this.currentSort().filter((s) => s.field !== this.sortField);
 
-    this.currentSort.set([...existing, { field: this.sortField!, direction: this.sortDirection }]);
+    this.currentSort.set([...existing, { field: Number(this.sortField), direction: this.sortDirection }]);
 
     this.sortField = null;
   }
@@ -302,8 +322,8 @@ export class QueryBuilderComponent {
     this.filters.update((f) => [
       ...f,
       {
-        field: this.newFilter.field,
-        operator: this.newFilter.operator as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10,
+        field: Number(this.newFilter.field),
+        operator: Number(this.newFilter.operator) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10,
         value: this.newFilter.value,
       },
     ]);
