@@ -28,7 +28,7 @@ func (h *UserHandler) List(c *fiber.Ctx) error {
 		PageSize: c.QueryInt("page_size", 20),
 	}
 
-	users, total, err := h.userService.FindAll(c.Context(), tenant, pagination.GetLimit(), pagination.GetOffset())
+	users, total, err := h.userService.FindAll(c.UserContext(), tenant, pagination.GetLimit(), pagination.GetOffset())
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -38,7 +38,7 @@ func (h *UserHandler) List(c *fiber.Ctx) error {
 
 func (h *UserHandler) Get(c *fiber.Ctx) error {
 	id := c.Params("id")
-	user, err := h.userService.FindByID(c.Context(), id)
+	user, err := h.userService.FindByID(c.UserContext(), id)
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -60,7 +60,7 @@ func (h *UserHandler) Create(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	user, err := h.userService.Create(c.Context(), tenant, &req)
+	user, err := h.userService.Create(c.UserContext(), tenant, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -79,7 +79,7 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	user, err := h.userService.Update(c.Context(), id, &req)
+	user, err := h.userService.Update(c.UserContext(), id, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -93,7 +93,7 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 func (h *UserHandler) Delete(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	if err := h.userService.Delete(c.Context(), id); err != nil {
+	if err := h.userService.Delete(c.UserContext(), id); err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
 
