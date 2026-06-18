@@ -24,7 +24,7 @@ func (h *StoreHandler) List(c *fiber.Ctx) error {
 	}
 
 	org := c.Query("org")
-	stores, err := h.service.FindAll(c.Context(), tenant, org)
+	stores, err := h.service.FindAll(c.UserContext(), tenant, org)
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -34,7 +34,7 @@ func (h *StoreHandler) List(c *fiber.Ctx) error {
 
 func (h *StoreHandler) Get(c *fiber.Ctx) error {
 	id := c.Params("id")
-	store, err := h.service.FindByID(c.Context(), id)
+	store, err := h.service.FindByID(c.UserContext(), id)
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -56,7 +56,7 @@ func (h *StoreHandler) Create(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	store, err := h.service.Create(c.Context(), tenant, &req)
+	store, err := h.service.Create(c.UserContext(), tenant, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -75,7 +75,7 @@ func (h *StoreHandler) Update(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	store, err := h.service.Update(c.Context(), id, &req)
+	store, err := h.service.Update(c.UserContext(), id, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -89,7 +89,7 @@ func (h *StoreHandler) Update(c *fiber.Ctx) error {
 func (h *StoreHandler) Delete(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	if err := h.service.Delete(c.Context(), id); err != nil {
+	if err := h.service.Delete(c.UserContext(), id); err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
 
@@ -99,7 +99,7 @@ func (h *StoreHandler) Delete(c *fiber.Ctx) error {
 // Bin handlers
 func (h *StoreHandler) ListBins(c *fiber.Ctx) error {
 	org := c.Query("org")
-	bins, err := h.service.FindBinsByOrg(c.Context(), org)
+	bins, err := h.service.FindBinsByOrg(c.UserContext(), org)
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -118,7 +118,7 @@ func (h *StoreHandler) CreateBin(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	bin, err := h.service.CreateBin(c.Context(), tenant, &req)
+	bin, err := h.service.CreateBin(c.UserContext(), tenant, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -137,7 +137,7 @@ func (h *StoreHandler) UpdateBin(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	bin, err := h.service.UpdateBin(c.Context(), id, &req)
+	bin, err := h.service.UpdateBin(c.UserContext(), id, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -151,7 +151,7 @@ func (h *StoreHandler) UpdateBin(c *fiber.Ctx) error {
 func (h *StoreHandler) DeleteBin(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	if err := h.service.DeleteBin(c.Context(), id); err != nil {
+	if err := h.service.DeleteBin(c.UserContext(), id); err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
 
