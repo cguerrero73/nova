@@ -29,7 +29,7 @@ func (h *EventHandler) List(c *fiber.Ctx) error {
 		PageSize: c.QueryInt("page_size", 20),
 	}
 
-	events, total, err := h.service.FindAll(c.Context(), tenant, org, pagination.GetLimit(), pagination.GetOffset())
+	events, total, err := h.service.FindAll(c.UserContext(), tenant, org, pagination.GetLimit(), pagination.GetOffset())
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -39,7 +39,7 @@ func (h *EventHandler) List(c *fiber.Ctx) error {
 
 func (h *EventHandler) Get(c *fiber.Ctx) error {
 	id := c.Params("id")
-	event, err := h.service.FindByID(c.Context(), id)
+	event, err := h.service.FindByID(c.UserContext(), id)
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -61,7 +61,7 @@ func (h *EventHandler) Create(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	event, err := h.service.Create(c.Context(), tenant, &req)
+	event, err := h.service.Create(c.UserContext(), tenant, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -80,7 +80,7 @@ func (h *EventHandler) Update(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	event, err := h.service.Update(c.Context(), id, &req)
+	event, err := h.service.Update(c.UserContext(), id, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -94,7 +94,7 @@ func (h *EventHandler) Update(c *fiber.Ctx) error {
 func (h *EventHandler) Delete(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	if err := h.service.Delete(c.Context(), id); err != nil {
+	if err := h.service.Delete(c.UserContext(), id); err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
 
@@ -105,7 +105,7 @@ func (h *EventHandler) GetByObject(c *fiber.Ctx) error {
 	code := c.Params("code")
 	org := c.Params("org")
 
-	events, err := h.service.FindByObject(c.Context(), code, org)
+	events, err := h.service.FindByObject(c.UserContext(), code, org)
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -123,7 +123,7 @@ func (h *EventHandler) UpdateStatus(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	event, err := h.service.UpdateStatus(c.Context(), id, req.Status)
+	event, err := h.service.UpdateStatus(c.UserContext(), id, req.Status)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
