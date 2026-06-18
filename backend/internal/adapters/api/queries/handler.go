@@ -38,9 +38,9 @@ func (h *QueriesHandler) List(c *fiber.Ctx) error {
 	var err error
 
 	if gridID > 0 {
-		result, err = h.queryService.List(c.Context(), gridID, userCode)
+		result, err = h.queryService.List(c.UserContext(), gridID, userCode)
 	} else {
-		result, err = h.queryService.ListByGridName(c.Context(), gridName, userCode)
+		result, err = h.queryService.ListByGridName(c.UserContext(), gridName, userCode)
 	}
 
 	if err != nil {
@@ -62,7 +62,7 @@ func (h *QueriesHandler) Get(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.New("BAD_REQUEST", "id is required", 400))
 	}
 
-	query, err := h.queryService.GetByID(c.Context(), id)
+	query, err := h.queryService.GetByID(c.UserContext(), id)
 	if err != nil {
 		return c.Status(404).JSON(errors.ErrNotFound)
 	}
@@ -91,7 +91,7 @@ func (h *QueriesHandler) Create(c *fiber.Ctx) error {
 		req.UserID = &userCode
 	}
 
-	query, err := h.queryService.Create(c.Context(), &req)
+	query, err := h.queryService.Create(c.UserContext(), &req)
 	if err != nil {
 		return c.Status(500).JSON(errors.ErrInternal)
 	}
@@ -115,7 +115,7 @@ func (h *QueriesHandler) Update(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	query, err := h.queryService.Update(c.Context(), id, &req)
+	query, err := h.queryService.Update(c.UserContext(), id, &req)
 	if err != nil {
 		return c.Status(500).JSON(errors.ErrInternal)
 	}
@@ -134,7 +134,7 @@ func (h *QueriesHandler) Delete(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.New("BAD_REQUEST", "id is required", 400))
 	}
 
-	if err := h.queryService.Delete(c.Context(), id); err != nil {
+	if err := h.queryService.Delete(c.UserContext(), id); err != nil {
 		return c.Status(500).JSON(errors.ErrInternal)
 	}
 
