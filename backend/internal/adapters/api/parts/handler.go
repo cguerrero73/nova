@@ -29,7 +29,7 @@ func (h *PartHandler) List(c *fiber.Ctx) error {
 		PageSize: c.QueryInt("page_size", 20),
 	}
 
-	parts, total, err := h.service.FindAll(c.Context(), tenant, org, pagination.GetLimit(), pagination.GetOffset())
+	parts, total, err := h.service.FindAll(c.UserContext(), tenant, org, pagination.GetLimit(), pagination.GetOffset())
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -39,7 +39,7 @@ func (h *PartHandler) List(c *fiber.Ctx) error {
 
 func (h *PartHandler) Get(c *fiber.Ctx) error {
 	id := c.Params("id")
-	part, err := h.service.FindByID(c.Context(), id)
+	part, err := h.service.FindByID(c.UserContext(), id)
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -61,7 +61,7 @@ func (h *PartHandler) Create(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	part, err := h.service.Create(c.Context(), tenant, &req)
+	part, err := h.service.Create(c.UserContext(), tenant, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -80,7 +80,7 @@ func (h *PartHandler) Update(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	part, err := h.service.Update(c.Context(), id, &req)
+	part, err := h.service.Update(c.UserContext(), id, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -94,7 +94,7 @@ func (h *PartHandler) Update(c *fiber.Ctx) error {
 func (h *PartHandler) Delete(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	if err := h.service.Delete(c.Context(), id); err != nil {
+	if err := h.service.Delete(c.UserContext(), id); err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
 
