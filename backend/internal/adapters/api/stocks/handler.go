@@ -26,7 +26,7 @@ func (h *StockHandler) List(c *fiber.Ctx) error {
 	storeCode := c.Query("store_code")
 	storeOrg := c.Query("store_org")
 
-	stocks, err := h.service.FindAll(c.Context(), tenant, storeCode, storeOrg)
+	stocks, err := h.service.FindAll(c.UserContext(), tenant, storeCode, storeOrg)
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -40,7 +40,7 @@ func (h *StockHandler) GetLowStock(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrTenantRequired())
 	}
 
-	stocks, err := h.service.FindLowStock(c.Context(), tenant)
+	stocks, err := h.service.FindLowStock(c.UserContext(), tenant)
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -50,7 +50,7 @@ func (h *StockHandler) GetLowStock(c *fiber.Ctx) error {
 
 func (h *StockHandler) Get(c *fiber.Ctx) error {
 	id := c.Params("id")
-	stock, err := h.service.FindByID(c.Context(), id)
+	stock, err := h.service.FindByID(c.UserContext(), id)
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -72,7 +72,7 @@ func (h *StockHandler) Create(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	stock, err := h.service.Create(c.Context(), tenant, &req)
+	stock, err := h.service.Create(c.UserContext(), tenant, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -91,7 +91,7 @@ func (h *StockHandler) Update(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	stock, err := h.service.Update(c.Context(), id, &req)
+	stock, err := h.service.Update(c.UserContext(), id, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -105,7 +105,7 @@ func (h *StockHandler) Update(c *fiber.Ctx) error {
 func (h *StockHandler) Delete(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	if err := h.service.Delete(c.Context(), id); err != nil {
+	if err := h.service.Delete(c.UserContext(), id); err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
 
@@ -123,7 +123,7 @@ func (h *StockHandler) AdjustQuantity(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	stock, err := h.service.AdjustQuantity(c.Context(), id, req.Quantity, req.Adjustment)
+	stock, err := h.service.AdjustQuantity(c.UserContext(), id, req.Quantity, req.Adjustment)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -145,7 +145,7 @@ func (h *StockHandler) ListBinStocks(c *fiber.Ctx) error {
 		return c.Status(400).JSON(dto.NewErrorResponse("BAD_REQUEST", "part_code and store_code are required"))
 	}
 
-	binStocks, err := h.service.FindBinStocksByPartAndStore(c.Context(), partCode, partOrg, storeCode, storeOrg)
+	binStocks, err := h.service.FindBinStocksByPartAndStore(c.UserContext(), partCode, partOrg, storeCode, storeOrg)
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -164,7 +164,7 @@ func (h *StockHandler) CreateBinStock(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	binStock, err := h.service.CreateBinStock(c.Context(), tenant, &req)
+	binStock, err := h.service.CreateBinStock(c.UserContext(), tenant, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -183,7 +183,7 @@ func (h *StockHandler) UpdateBinStock(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	binStock, err := h.service.UpdateBinStock(c.Context(), id, &req)
+	binStock, err := h.service.UpdateBinStock(c.UserContext(), id, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -197,7 +197,7 @@ func (h *StockHandler) UpdateBinStock(c *fiber.Ctx) error {
 func (h *StockHandler) DeleteBinStock(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	if err := h.service.DeleteBinStock(c.Context(), id); err != nil {
+	if err := h.service.DeleteBinStock(c.UserContext(), id); err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
 
