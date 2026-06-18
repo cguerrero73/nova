@@ -17,7 +17,7 @@ func NewSysCodeHandler(service *syscodes.SysCodeService) *SysCodeHandler {
 }
 
 func (h *SysCodeHandler) List(c *fiber.Ctx) error {
-	syscodes, err := h.service.FindAll(c.Context())
+	syscodes, err := h.service.FindAll(c.UserContext())
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -27,7 +27,7 @@ func (h *SysCodeHandler) List(c *fiber.Ctx) error {
 
 func (h *SysCodeHandler) Get(c *fiber.Ctx) error {
 	id := c.Params("id")
-	syscode, err := h.service.FindByID(c.Context(), id)
+	syscode, err := h.service.FindByID(c.UserContext(), id)
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -44,7 +44,7 @@ func (h *SysCodeHandler) Create(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	syscode, err := h.service.Create(c.Context(), &req)
+	syscode, err := h.service.Create(c.UserContext(), &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -63,7 +63,7 @@ func (h *SysCodeHandler) Update(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	syscode, err := h.service.Update(c.Context(), id, &req)
+	syscode, err := h.service.Update(c.UserContext(), id, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -77,7 +77,7 @@ func (h *SysCodeHandler) Update(c *fiber.Ctx) error {
 func (h *SysCodeHandler) Delete(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	if err := h.service.Delete(c.Context(), id); err != nil {
+	if err := h.service.Delete(c.UserContext(), id); err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
 		}
@@ -90,7 +90,7 @@ func (h *SysCodeHandler) Delete(c *fiber.Ctx) error {
 func (h *SysCodeHandler) GetByType(c *fiber.Ctx) error {
 	codeType := c.Params("type")
 
-	syscodes, err := h.service.FindByType(c.Context(), codeType)
+	syscodes, err := h.service.FindByType(c.UserContext(), codeType)
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
