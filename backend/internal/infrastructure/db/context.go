@@ -36,7 +36,11 @@ type TenantContextKey struct{}
 // RunInTenantTx executes a function within a tenant-scoped transaction.
 // It automatically sets the search_path for the transaction.
 // This is the recommended way to execute queries when using PgBouncer in transaction mode.
-func RunInTenantTx(ctx context.Context, pool *pgxpool.Pool, fn func(tx pgx.Tx) error) error {
+//
+// The pool is taken as the QueryEngine interface so the function can be unit
+// tested with pgxmock without touching a real PostgreSQL connection. The
+// production caller (*pgxpool.Pool) already satisfies this interface.
+func RunInTenantTx(ctx context.Context, pool QueryEngine, fn func(tx pgx.Tx) error) error {
 	tenant := extractTenantCode(ctx)
 
 	// DEBUG: log ctx type
