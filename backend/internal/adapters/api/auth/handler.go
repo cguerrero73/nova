@@ -29,7 +29,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	req.Tenant = tenant
 
-	resp, err := h.authService.Login(c.Context(), &req)
+	resp, err := h.authService.Login(c.UserContext(), &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -56,7 +56,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 
 	req.Tenant = tenant
 
-	resp, err := h.authService.Register(c.Context(), &req)
+	resp, err := h.authService.Register(c.UserContext(), &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -76,7 +76,7 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	resp, err := h.authService.RefreshToken(c.Context(), req.RefreshToken)
+	resp, err := h.authService.RefreshToken(c.UserContext(), req.RefreshToken)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -96,7 +96,7 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 		return c.Status(401).JSON(errors.ErrUnauthorized)
 	}
 
-	if err := h.authService.Logout(c.Context(), user.UserCode); err != nil {
+	if err := h.authService.Logout(c.UserContext(), user.UserCode); err != nil {
 		return c.Status(500).JSON(errors.ErrInternal)
 	}
 
@@ -115,7 +115,7 @@ func (h *AuthHandler) Me(c *fiber.Ctx) error {
 	}
 
 	// Get full user from service
-	resp, err := h.authService.GetUserByCode(c.Context(), user.UserCode)
+	resp, err := h.authService.GetUserByCode(c.UserContext(), user.UserCode)
 	if err != nil {
 		return c.Status(500).JSON(errors.ErrInternal)
 	}
