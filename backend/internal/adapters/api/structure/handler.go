@@ -23,7 +23,7 @@ func (h *StructureHandler) List(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrTenantRequired())
 	}
 
-	structures, err := h.service.FindAll(c.Context(), tenant)
+	structures, err := h.service.FindAll(c.UserContext(), tenant)
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -33,7 +33,7 @@ func (h *StructureHandler) List(c *fiber.Ctx) error {
 
 func (h *StructureHandler) Get(c *fiber.Ctx) error {
 	id := c.Params("id")
-	structure, err := h.service.FindByID(c.Context(), id)
+	structure, err := h.service.FindByID(c.UserContext(), id)
 	if err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
@@ -55,7 +55,7 @@ func (h *StructureHandler) Create(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	structure, err := h.service.Create(c.Context(), tenant, &req)
+	structure, err := h.service.Create(c.UserContext(), tenant, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -74,7 +74,7 @@ func (h *StructureHandler) Update(c *fiber.Ctx) error {
 		return c.Status(400).JSON(errors.ErrBadRequest)
 	}
 
-	structure, err := h.service.Update(c.Context(), id, &req)
+	structure, err := h.service.Update(c.UserContext(), id, &req)
 	if err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			return c.Status(appErr.Status).JSON(appErr)
@@ -88,7 +88,7 @@ func (h *StructureHandler) Update(c *fiber.Ctx) error {
 func (h *StructureHandler) Delete(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	if err := h.service.Delete(c.Context(), id); err != nil {
+	if err := h.service.Delete(c.UserContext(), id); err != nil {
 		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
 	}
 
