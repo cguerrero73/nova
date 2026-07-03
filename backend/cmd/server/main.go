@@ -62,6 +62,9 @@ func main() {
 	// Auth middleware
 	authMw := middleware.NewAuthMiddleware(cfg.JWT)
 
+	// Context loader middleware (loads active role + permissions after auth)
+	contextLoader := middleware.NewContextLoader(c.RoleRepository)
+
 	// Routes
 	api := app.Group("/api/v1")
 
@@ -73,8 +76,8 @@ func main() {
 
 	api.Get("/screens/:screenId", c.ScreenHandler.GetTranslations)
 
-	// Protected routes (auth required)
-	protected := api.Group("", authMw.Authenticate())
+	// Protected routes (auth required + context loaded)
+	protected := api.Group("", authMw.Authenticate(), contextLoader.LoadContext())
 
 	// Auth routes requiring auth
 	protected.Post("/logout", c.AuthHandler.Logout)
