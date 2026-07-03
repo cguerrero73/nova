@@ -100,18 +100,18 @@ Chain strategy: pending
 
 ## PR5: Frontend Designer
 
-- [ ] 5.1 Create `frontend/src/app/features/form-builder/services/designer.service.ts`: HTTP client for CRUD forms/layouts/drafts/publish/versions.
-- [ ] 5.2 Create `frontend/src/app/features/form-builder/services/assignment.service.ts`: HTTP client for assignments CRUD.
-- [ ] 5.3 Create `frontend/src/app/features/form-builder/state/designer.store.ts`: signal-based store for designer state.
-- [ ] 5.4 Create `designer/form-designer.component.ts`: three-panel layout (palette, canvas, settings).
-- [ ] 5.5 Create `designer/field-palette.component.ts`: 8 draggable field types.
-- [ ] 5.6 Create `designer/section-canvas.component.ts`: CDK DragDrop sections + fields, reorder, cross-section move.
-- [ ] 5.7 Create `designer/field-settings.component.ts`: reactive config panel (label, placeholder, validators, options for select/radio/multiselect).
-- [ ] 5.8 Create `designer/layout-picker.component.ts`: list layouts, default badge, create new.
-- [ ] 5.9 Create `designer/assignment-panel.component.ts`: role-to-layout mapping, unassigned roles show "→ uses default".
-- [ ] 5.10 Create `designer/preview-dialog.component.ts`: render draft using FormRuntimeComponent.
-- [ ] 5.11 Add shared Zod validation before save draft (block + inline errors).
-- [ ] 5.12 Tests: drag-reorder serialization, publish flow, assignment panel, shared schema validation.
+- [x] 5.1 Create `frontend/src/app/features/form-builder/services/designer.service.ts`: HTTP client for CRUD forms/layouts/drafts/publish/versions.
+- [x] 5.2 Create `frontend/src/app/features/form-builder/services/assignment.service.ts`: HTTP client for assignments CRUD.
+- [x] 5.3 Create `frontend/src/app/features/form-builder/state/designer.store.ts`: signal-based store for designer state.
+- [x] 5.4 Create `designer/form-designer.component.ts`: three-panel layout (palette, canvas, settings).
+- [x] 5.5 Create `designer/field-palette.component.ts`: 8 draggable field types.
+- [x] 5.6 Create `designer/section-canvas.component.ts`: CDK DragDrop sections + fields, reorder, cross-section move.
+- [x] 5.7 Create `designer/field-settings.component.ts`: reactive config panel (label, placeholder, validators, options for select/radio/multiselect).
+- [x] 5.8 Create `designer/layout-picker.component.ts`: list layouts, default badge, create new.
+- [x] 5.9 Create `designer/assignment-panel.component.ts`: role-to-layout mapping, unassigned roles show "→ uses default".
+- [x] 5.10 Create `designer/preview-dialog.component.ts`: render draft using FormRuntimeComponent.
+- [x] 5.11 Add shared Zod validation before save draft (block + inline errors).
+- [x] 5.12 Tests: drag-reorder serialization, publish flow, assignment panel, shared schema validation.
 
 **Dependencies**: PR4. **LOC**: ~950.
 
