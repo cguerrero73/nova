@@ -5,6 +5,7 @@ import { FormDesignerStore } from '../state/designer.store';
 import {
   FieldType,
   FieldUi,
+  FieldWidth,
   ValidatorKind,
   FieldOption,
 } from '../models/layout-definition.model';
@@ -31,7 +32,7 @@ import {
             <input
               type="text"
               [ngModel]="store.selectedField()!.ui.label"
-              (ngModelChange)="patchField({ ui: { ...currentUi(), label: $event } })"
+              (ngModelChange)="onLabelChange($event)"
               class="w-full px-2 py-1 text-sm border rounded"
             />
           </div>
@@ -42,7 +43,7 @@ import {
             <input
               type="text"
               [ngModel]="store.selectedField()!.ui.placeholder || ''"
-              (ngModelChange)="patchField({ ui: { ...currentUi(), placeholder: $event || undefined } })"
+              (ngModelChange)="onPlaceholderChange($event)"
               class="w-full px-2 py-1 text-sm border rounded"
             />
           </div>
@@ -53,7 +54,7 @@ import {
             <input
               type="text"
               [ngModel]="store.selectedField()!.ui.helpText || ''"
-              (ngModelChange)="patchField({ ui: { ...currentUi(), helpText: $event || undefined } })"
+              (ngModelChange)="onHelpTextChange($event)"
               class="w-full px-2 py-1 text-sm border rounded"
             />
           </div>
@@ -63,7 +64,7 @@ import {
             <label class="block text-xs font-medium text-gray-600 mb-1">Width</label>
             <select
               [ngModel]="store.selectedField()!.ui.width || 'full'"
-              (ngModelChange)="patchField({ ui: { ...currentUi(), width: $event } })"
+              (ngModelChange)="onWidthChange($event)"
               class="w-full px-2 py-1 text-sm border rounded"
             >
               <option value="full">Full</option>
@@ -77,7 +78,7 @@ import {
             <input
               type="checkbox"
               [ngModel]="store.selectedField()!.ui.readOnly || false"
-              (ngModelChange)="patchField({ ui: { ...currentUi(), readOnly: $event } })"
+              (ngModelChange)="onReadOnlyChange($event)"
               id="readOnly"
             />
             <label for="readOnly" class="text-xs text-gray-600">Read-only</label>
@@ -229,6 +230,34 @@ export class FieldSettingsComponent {
 
     const updated = { ...field, ...patch } as FieldType;
     this.store.updateField(sectionName, field.name, updated);
+  }
+
+  private patchUi(update: Partial<FieldUi>): void {
+    const field = this.store.selectedField();
+    const sectionName = this.store.selectedFieldSection();
+    if (!field || !sectionName) return;
+    const ui = { ...field.ui, ...update };
+    this.store.updateField(sectionName, field.name, { ...field, ui } as FieldType);
+  }
+
+  onLabelChange(label: string): void {
+    this.patchUi({ label });
+  }
+
+  onPlaceholderChange(placeholder: string): void {
+    this.patchUi({ placeholder: placeholder || undefined });
+  }
+
+  onHelpTextChange(helpText: string): void {
+    this.patchUi({ helpText: helpText || undefined });
+  }
+
+  onWidthChange(width: string): void {
+    this.patchUi({ width: width as FieldWidth });
+  }
+
+  onReadOnlyChange(readOnly: boolean): void {
+    this.patchUi({ readOnly });
   }
 
   hasValidator(kind: string): boolean {

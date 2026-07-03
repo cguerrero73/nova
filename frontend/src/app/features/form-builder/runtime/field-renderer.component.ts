@@ -53,6 +53,19 @@ import { FieldMultiselectComponent } from './field-renderers/field-multiselect.c
         <app-field-multiselect [field]="$any(field())" [control]="control()" [isRequired]="isRequired()" />
       }
     }
+    @if (control().invalid && control().touched) {
+      <div class="cross-field-errors">
+        @if (control().hasError('equals')) {
+          <span class="field-error">{{ control().getError('equals')?.message }}</span>
+        }
+        @if (control().hasError('notEquals')) {
+          <span class="field-error">{{ control().getError('notEquals')?.message }}</span>
+        }
+        @if (control().hasError('requiredIf')) {
+          <span class="field-error">{{ control().getError('requiredIf')?.message }}</span>
+        }
+      </div>
+    }
   `,
   host: {
     '[class.field-full]': 'width() === "full"',
@@ -66,6 +79,8 @@ import { FieldMultiselectComponent } from './field-renderers/field-multiselect.c
     :host(.field-half) { grid-column: span 6 / span 6; }
     :host(.field-third) { grid-column: span 4 / span 4; }
     :host(.field-hidden) { display: none; }
+    .cross-field-errors { display: flex; flex-direction: column; gap: 0.125rem; margin-top: 0.25rem; }
+    .field-error { font-size: 0.75rem; color: #dc2626; }
   `],
 })
 export class FieldRendererComponent {

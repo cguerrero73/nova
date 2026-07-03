@@ -89,7 +89,7 @@ export class SectionCardComponent {
   fieldDropped = output<{ sectionName: string; field: FieldType; index: number }>();
   fieldMoved = output<{ sectionName: string; previousIndex: number; currentIndex: number }>();
 
-  onDrop(event: CdkDragDrop<FieldType[] | PaletteFieldType[]>): void {
+  onDrop(event: CdkDragDrop<FieldType[]>): void {
     if (event.previousContainer === event.container) {
       // Reorder within same section
       this.fieldMoved.emit({
@@ -99,7 +99,7 @@ export class SectionCardComponent {
       });
     } else {
       // Transfer from palette or another section
-      const item = event.previousContainer.data[event.previousIndex];
+      const item = (event.previousContainer.data as any[])[event.previousIndex];
       // Palette items have `type` and `label` but no `name` or `ui`
       if ('ui' in item) {
         // It's a FieldType — cross-section move

@@ -153,10 +153,26 @@ export class FormRuntimeComponent implements OnInit {
     const result = evaluateCrossFieldRules(rules, this.form);
     this.hiddenFields.set(result.hiddenFields);
 
+    // Clear previous cross-field errors from all target controls
+    const crossFieldErrorKeys = ['equals', 'notEquals', 'requiredIf'];
+    const targetControls = new Set(rules.map((r) => r.target));
+    for (const controlName of targetControls) {
+      const ctrl = this.form.get(controlName);
+      if (ctrl?.errors) {
+        const cleaned = { ...ctrl.errors };
+        for (const key of crossFieldErrorKeys) {
+          delete cleaned[key];
+        }
+        ctrl.setErrors(Object.keys(cleaned).length > 0 ? cleaned : null, { emitEvent: false });
+      }
+    }
+
+    // Set new cross-field errors (merge with existing built-in errors)
     for (const [controlName, error] of Object.entries(result.errors) as [string, ValidationErrors][]) {
       const ctrl = this.form.get(controlName);
       if (ctrl) {
-        ctrl.setErrors(error, { emitEvent: false });
+        const merged = { ...(ctrl.errors || {}), ...error };
+        ctrl.setErrors(merged, { emitEvent: false });
       }
     }
   }
