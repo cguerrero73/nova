@@ -58,16 +58,16 @@ Chain strategy: pending
 
 ## PR2: Backend Design + Publish
 
-- [ ] 2.1 Add `CreateLayout` to service: reject reserved name `default`, reject duplicates, write audit. `domain/formbuilder/service.go`
-- [ ] 2.2 Add `SaveDraft`: create or update draft version row, enforce one-draft-per-layout. `domain/formbuilder/service.go`
-- [ ] 2.3 Add `Publish`: create published version from draft, bump version_number, clear draft pointer, write audit. `domain/formbuilder/service.go`
-- [ ] 2.4 Add `Revert`: copy published version N back as new draft. `domain/formbuilder/service.go`
-- [ ] 2.5 Add `ArchiveLayout`: soft-archive, reject default while form active. `domain/formbuilder/service.go`
-- [ ] 2.6 Add assignment endpoints to service: AssignRole, RevokeAssignment, ListAssignments. `domain/formbuilder/service.go`
-- [ ] 2.7 Create `domain/formbuilder/dto.go`: HTTP request/response DTOs.
-- [ ] 2.8 Extend `adapters/api/formbuilder/handler.go`: POST forms, PUT/POST draft, POST publish, POST revert, POST archive (form+layout), PUT/DELETE assignments, GET versions, GET assignments.
-- [ ] 2.9 Extend `adapters/db/formbuilder/`: audit_log_repository.go PgX implementation.
-- [ ] 2.10 Tests: publish flow integration, draft save/update, assignment replace+revoke, archive invariants.
+- [x] 2.1 Add `CreateLayout` to service: reject reserved name `default`, reject duplicates, write audit. `domain/formbuilder/service.go`
+- [x] 2.2 Add `SaveDraft`: create or update draft version row, enforce one-draft-per-layout. `domain/formbuilder/service.go`
+- [x] 2.3 Add `Publish`: create published version from draft, bump version_number, clear draft pointer, write audit. `domain/formbuilder/service.go`
+- [x] 2.4 Add `Revert`: copy published version N back as new draft. `domain/formbuilder/service.go`
+- [x] 2.5 Add `ArchiveLayout`: soft-archive, reject default while form active. `domain/formbuilder/service.go`
+- [x] 2.6 Add assignment endpoints to service: AssignRole, RevokeAssignment, ListAssignments. `domain/formbuilder/service.go`
+- [x] 2.7 Create `domain/formbuilder/dto.go`: HTTP request/response DTOs.
+- [x] 2.8 Extend `adapters/api/formbuilder/handler.go`: POST forms, PUT/POST draft, POST publish, POST revert, POST archive (form+layout), PUT/DELETE assignments, GET versions, GET assignments.
+- [x] 2.9 Extend `adapters/db/formbuilder/`: audit_log_repository.go PgX implementation.
+- [x] 2.10 Tests: publish flow integration, draft save/update, assignment replace+revoke, archive invariants.
 
 **Dependencies**: PR1. **LOC**: ~550.
 
