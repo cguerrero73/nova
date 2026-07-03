@@ -100,6 +100,15 @@ func (m *mockLayoutRepo) FindByFormAndName(_ context.Context, formID int64, name
 	return nil, nil
 }
 
+func (m *mockLayoutRepo) FindByName(_ context.Context, name string) (*formbuilder.Layout, error) {
+	for _, byName := range m.layouts {
+		if l, ok := byName[name]; ok {
+			return l, nil
+		}
+	}
+	return nil, nil
+}
+
 func (m *mockLayoutRepo) ListByFormID(_ context.Context, formID int64) ([]*formbuilder.Layout, error) {
 	var result []*formbuilder.Layout
 	if byName, ok := m.layouts[formID]; ok {
@@ -281,7 +290,7 @@ func (m *mockAuditRepo) Create(_ context.Context, entry *formbuilder.AuditEntry)
 	return nil
 }
 
-func (m *mockAuditRepo) ListByForm(_ context.Context, _ int64, _ string, _ string, _, _ int) ([]*formbuilder.AuditEntry, int, error) {
+func (m *mockAuditRepo) ListByForm(_ context.Context, _ int64, _ formbuilder.AuditFilter, _, _ int) ([]*formbuilder.AuditEntry, int, error) {
 	return m.entries, len(m.entries), nil
 }
 
@@ -1107,5 +1116,129 @@ func TestGetVersion_NotFound(t *testing.T) {
 	}
 	if err != formbuilder.ErrVersionNotFound {
 		t.Errorf("expected ErrVersionNotFound, got %v", err)
+	}
+}
+
+// --- PR3 Tests ---
+
+func TestAssignRole_CrossFormLayout_Returns422(t *testing.T) {
+	svc, _, _, _, _, _ := newTestService()
+	ctx := context.Background()
+
+	// Create two forms
+	formA, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "form-a",
+		Name: "Form A",
+	}, "admin")
+
+	formB, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "form-b",
+		Name: "Form B",
+	}, "admin")
+
+	// Create a layout in form B
+	svc.CreateLayout(ctx, formB.Key, &formbuilder.CreateLayoutRequest{
+		Name:        "special-layout",
+		DisplayName: "Special Layout",
+	}, "admin")
+
+	// Try to assign form B's layout to form A → should get ErrCrossFormLayout
+	_, err := svc.AssignRole(ctx, formA.Key, "admin", "special-layout", "designer")
+	if err == nil {
+		t.Fatal("expected error for cross-form layout assignment")
+	}
+	if err != formbuilder.ErrCrossFormLayout {
+		t.Errorf("expected ErrCrossFormLayout (422), got %v", err)
+	}
+}
+
+func TestAssignRole_NonExistentLayout_Returns404(t *testing.T) {
+	svc, _, _, _, _, _ := newTestService()
+	ctx := context.Background()
+
+	form, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	_, err := svc.AssignRole(ctx, form.Key, "admin", "nonexistent-layout", "designer")
+	if err == nil {
+		t.Fatal("expected error for non-existent layout")
+	}
+	if err != formbuilder.ErrLayoutNotFound {
+		t.Errorf("expected ErrLayoutNotFound (404), got %v", err)
+	}
+}
+
+func TestListAudit_ReturnsEntriesWithFilters(t *testing.T) {
+	svc, _, _, _, _, au := newTestService()
+	ctx := context.Background()
+
+	form, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	// CreateForm writes 2 audit entries (form.create + layout.create)
+	if len(au.entries) != 2 {
+		t.Fatalf("expected 2 audit entries, got %d", len(au.entries))
+	}
+
+	// List all audit entries
+	entries, total, err := svc.ListAudit(ctx, form.Key, formbuilder.AuditFilter{}, 1, 20)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if total != 2 {
+		t.Errorf("expected total 2, got %d", total)
+	}
+	if len(entries) != 2 {
+		t.Errorf("expected 2 entries, got %d", len(entries))
+	}
+
+	// Filter by action
+	entries, total, err = svc.ListAudit(ctx, form.Key, formbuilder.AuditFilter{Action: "form.create"}, 1, 20)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Mock returns all entries regardless of filter, but the service call should succeed
+	if total < 1 {
+		t.Errorf("expected at least 1 entry, got %d", total)
+	}
+	_ = entries
+}
+
+func TestListAudit_FormNotFound(t *testing.T) {
+	svc, _, _, _, _, _ := newTestService()
+	ctx := context.Background()
+
+	_, _, err := svc.ListAudit(ctx, "nonexistent-form", formbuilder.AuditFilter{}, 1, 20)
+	if err == nil {
+		t.Fatal("expected error for non-existent form")
+	}
+	if err != formbuilder.ErrFormNotFound {
+		t.Errorf("expected ErrFormNotFound, got %v", err)
+	}
+}
+
+func TestListAudit_Pagination(t *testing.T) {
+	svc, _, _, _, _, _ := newTestService()
+	ctx := context.Background()
+
+	form, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	// Test default pagination values
+	_, _, err := svc.ListAudit(ctx, form.Key, formbuilder.AuditFilter{}, 0, 0)
+	if err != nil {
+		t.Fatalf("unexpected error with default pagination: %v", err)
+	}
+
+	// Test page size cap
+	_, _, err = svc.ListAudit(ctx, form.Key, formbuilder.AuditFilter{}, 1, 200)
+	if err != nil {
+		t.Fatalf("unexpected error with large page size: %v", err)
 	}
 }
