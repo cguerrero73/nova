@@ -166,6 +166,222 @@ func (h *FormHandler) ListAssignments(c *fiber.Ctx) error {
 	return c.JSON(dto.NewSuccessResponse(assignments))
 }
 
+// SaveDraft handles PUT /api/formbuilder/forms/:formKey/layouts/:layoutName/draft
+func (h *FormHandler) SaveDraft(c *fiber.Ctx) error {
+	if !requirePermission(c, "design") {
+		return nil
+	}
+
+	formKey := c.Params("formKey")
+	layoutName := c.Params("layoutName")
+
+	// The body is raw layout JSON
+	definition := c.Body()
+	if len(definition) == 0 {
+		return c.Status(400).JSON(dto.NewErrorResponse("VALIDATION_ERROR", "Request body must contain layout JSON"))
+	}
+
+	actor := getActor(c)
+	version, err := h.service.SaveDraft(c.UserContext(), formKey, layoutName, definition, actor)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			return c.Status(appErr.Status).JSON(appErr)
+		}
+		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
+	}
+
+	return c.JSON(dto.NewSuccessResponse(version))
+}
+
+// Publish handles POST /api/formbuilder/forms/:formKey/layouts/:layoutName/publish
+func (h *FormHandler) Publish(c *fiber.Ctx) error {
+	if !requirePermission(c, "publish") {
+		return nil
+	}
+
+	formKey := c.Params("formKey")
+	layoutName := c.Params("layoutName")
+
+	var req formbuilder.PublishRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(errors.ErrBadRequest)
+	}
+
+	actor := getActor(c)
+	version, err := h.service.Publish(c.UserContext(), formKey, layoutName, req.Description, actor)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			return c.Status(appErr.Status).JSON(appErr)
+		}
+		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
+	}
+
+	return c.Status(201).JSON(dto.NewSuccessResponse(version))
+}
+
+// Revert handles POST /api/formbuilder/forms/:formKey/layouts/:layoutName/revert
+func (h *FormHandler) Revert(c *fiber.Ctx) error {
+	if !requirePermission(c, "design") {
+		return nil
+	}
+
+	formKey := c.Params("formKey")
+	layoutName := c.Params("layoutName")
+
+	var req formbuilder.RevertRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(errors.ErrBadRequest)
+	}
+
+	if req.VersionNumber <= 0 {
+		return c.Status(400).JSON(dto.NewErrorResponse("VALIDATION_ERROR", "versionNumber is required and must be positive"))
+	}
+
+	actor := getActor(c)
+	version, err := h.service.Revert(c.UserContext(), formKey, layoutName, req.VersionNumber, actor)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			return c.Status(appErr.Status).JSON(appErr)
+		}
+		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
+	}
+
+	return c.JSON(dto.NewSuccessResponse(version))
+}
+
+// ArchiveLayout handles POST /api/formbuilder/forms/:formKey/layouts/:layoutName/archive
+func (h *FormHandler) ArchiveLayout(c *fiber.Ctx) error {
+	if !requirePermission(c, "publish") {
+		return nil
+	}
+
+	formKey := c.Params("formKey")
+	layoutName := c.Params("layoutName")
+
+	actor := getActor(c)
+	if err := h.service.ArchiveLayout(c.UserContext(), formKey, layoutName, actor); err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			return c.Status(appErr.Status).JSON(appErr)
+		}
+		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
+	}
+
+	return c.JSON(dto.NewMessageResponse("Layout archived"))
+}
+
+// ArchiveForm handles POST /api/formbuilder/forms/:formKey/archive
+func (h *FormHandler) ArchiveForm(c *fiber.Ctx) error {
+	if !requirePermission(c, "publish") {
+		return nil
+	}
+
+	formKey := c.Params("formKey")
+	actor := getActor(c)
+
+	if err := h.service.ArchiveForm(c.UserContext(), formKey, actor); err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			return c.Status(appErr.Status).JSON(appErr)
+		}
+		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
+	}
+
+	return c.JSON(dto.NewMessageResponse("Form archived"))
+}
+
+// ListVersions handles GET /api/formbuilder/forms/:formKey/layouts/:layoutName/versions
+func (h *FormHandler) ListVersions(c *fiber.Ctx) error {
+	if !requirePermission(c, "view") {
+		return nil
+	}
+
+	formKey := c.Params("formKey")
+	layoutName := c.Params("layoutName")
+
+	versions, err := h.service.ListVersions(c.UserContext(), formKey, layoutName)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			return c.Status(appErr.Status).JSON(appErr)
+		}
+		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
+	}
+
+	return c.JSON(dto.NewSuccessResponse(versions))
+}
+
+// GetVersion handles GET /api/formbuilder/forms/:formKey/layouts/:layoutName/versions/:n
+func (h *FormHandler) GetVersion(c *fiber.Ctx) error {
+	if !requirePermission(c, "view") {
+		return nil
+	}
+
+	formKey := c.Params("formKey")
+	layoutName := c.Params("layoutName")
+	versionNumber, err := c.ParamsInt("n")
+	if err != nil || versionNumber <= 0 {
+		return c.Status(400).JSON(dto.NewErrorResponse("VALIDATION_ERROR", "Version number must be a positive integer"))
+	}
+
+	version, err := h.service.GetVersion(c.UserContext(), formKey, layoutName, versionNumber)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			return c.Status(appErr.Status).JSON(appErr)
+		}
+		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
+	}
+
+	return c.JSON(dto.NewSuccessResponse(version))
+}
+
+// AssignRole handles PUT /api/formbuilder/forms/:formKey/assignments/:roleName
+func (h *FormHandler) AssignRole(c *fiber.Ctx) error {
+	if !requirePermission(c, "assign") {
+		return nil
+	}
+
+	formKey := c.Params("formKey")
+	roleName := c.Params("roleName")
+
+	var req formbuilder.AssignRoleRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(errors.ErrBadRequest)
+	}
+
+	if req.LayoutName == "" {
+		return c.Status(400).JSON(dto.NewErrorResponse("VALIDATION_ERROR", "layoutName is required"))
+	}
+
+	actor := getActor(c)
+	assignment, err := h.service.AssignRole(c.UserContext(), formKey, roleName, req.LayoutName, actor)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			return c.Status(appErr.Status).JSON(appErr)
+		}
+		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
+	}
+
+	return c.Status(201).JSON(dto.NewSuccessResponse(assignment))
+}
+
+// RevokeAssignment handles DELETE /api/formbuilder/forms/:formKey/assignments/:roleName
+func (h *FormHandler) RevokeAssignment(c *fiber.Ctx) error {
+	if !requirePermission(c, "assign") {
+		return nil
+	}
+
+	formKey := c.Params("formKey")
+	roleName := c.Params("roleName")
+
+	actor := getActor(c)
+	if err := h.service.RevokeAssignment(c.UserContext(), formKey, roleName, actor); err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			return c.Status(appErr.Status).JSON(appErr)
+		}
+		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
+	}
+
+	return c.JSON(dto.NewMessageResponse("Assignment revoked"))
+}
+
 // requirePermission checks if the active role has the given formbuilder permission.
 // Returns true if allowed, false if a 403 response was already written.
 func requirePermission(c *fiber.Ctx, action string) bool {
