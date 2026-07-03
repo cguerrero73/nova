@@ -9,6 +9,7 @@ import { FieldPaletteComponent } from './field-palette.component';
 import { SectionCanvasComponent } from './section-canvas.component';
 import { FieldSettingsComponent } from './field-settings.component';
 import { PreviewDialogComponent } from './preview-dialog.component';
+import { AuditPanelComponent } from './audit-panel.component';
 
 /**
  * Main designer page — 3-column layout: palette | canvas | settings.
@@ -26,6 +27,7 @@ import { PreviewDialogComponent } from './preview-dialog.component';
     SectionCanvasComponent,
     FieldSettingsComponent,
     PreviewDialogComponent,
+    AuditPanelComponent,
   ],
   template: `
     <div class="form-designer h-full flex flex-col">
@@ -89,6 +91,7 @@ import { PreviewDialogComponent } from './preview-dialog.component';
           <div class="border-t mt-2 pt-2">
             <app-assignment-panel />
           </div>
+          <app-audit-panel />
         </div>
 
         <!-- Center: canvas -->

@@ -47,18 +47,18 @@ export interface RoleAssignment {
 }
 
 export interface AuditEntry {
-  fal_id: number;
-  fal_form_id: number;
-  fal_action: string;
-  fal_entity_type: string;
-  fal_entity_id: number;
-  fal_actor: string;
-  fal_metadata: Record<string, unknown>;
-  fal_created_at: string;
+  id: number;
+  actorUserId: string;
+  action: string;
+  entityType: string;
+  entityId: number;
+  metadata: Record<string, unknown>;
+  note: string;
+  createdAt: string;
 }
 
 export interface AuditListResponse {
-  entries: AuditEntry[];
+  items: AuditEntry[];
   total: number;
   page: number;
   pageSize: number;

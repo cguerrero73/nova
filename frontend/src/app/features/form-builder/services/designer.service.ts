@@ -1,11 +1,12 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { ApiService } from '@core/services/api.service';
 import { LayoutDefinition } from '../models/layout-definition.model';
 import {
   FormDefinition,
   FormLayout,
   LayoutVersion,
+  AuditListResponse,
 } from '../models/designer.model';
 
 /**
@@ -113,5 +114,24 @@ export class FormDesignerService {
     return this.api.getRaw<LayoutVersion>(
       `/formbuilder/forms/${formKey}/layouts/${layoutName}/versions/${versionNumber}`,
     );
+  }
+
+  // --- Audit ---
+
+  listAudit(
+    formKey: string,
+    params?: { page?: number; pageSize?: number; action?: string; entityType?: string },
+  ): Observable<AuditListResponse> {
+    const queryParts: string[] = [];
+    if (params?.page) queryParts.push(`page=${params.page}`);
+    if (params?.pageSize) queryParts.push(`pageSize=${params.pageSize}`);
+    if (params?.action) queryParts.push(`action=${encodeURIComponent(params.action)}`);
+    if (params?.entityType) queryParts.push(`entity_type=${encodeURIComponent(params.entityType)}`);
+    const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+    return this.api
+      .getRaw<{ success: boolean; data: AuditListResponse }>(
+        `/formbuilder/forms/${formKey}/audit${qs}`,
+      )
+      .pipe(map((res) => res.data));
   }
 }
