@@ -83,18 +83,18 @@ Chain strategy: pending
 
 ## PR4: Frontend Runtime Renderer
 
-- [ ] 4.1 Create `shared/form-schemas/layout_definition.schema.ts`: Zod schema for layout JSON.
-- [ ] 4.2 Create `shared/form-schemas/field-types.ts`: discriminated union for 8 field types.
-- [ ] 4.3 Create `shared/form-schemas/validators.ts`: validator kind catalog.
-- [ ] 4.4 Create `shared/form-schemas/rules.ts`: cross-field rule catalog (equals, notEquals, requiredIf, hiddenIf).
-- [ ] 4.5 Create `shared/form-schemas/index.ts`: public re-exports.
-- [ ] 4.6 Create `frontend/src/app/features/form-builder/models/`: TS types mirroring shared schemas.
-- [ ] 4.7 Create `frontend/src/app/features/form-builder/services/runtime.service.ts`: HTTP client for GET /forms/:formKey.
-- [ ] 4.8 Create `frontend/src/app/features/form-builder/runtime/form-runtime.component.ts`: signal-based standalone, Reactive Forms, section/field rendering.
-- [ ] 4.9 Create 8 field renderer components (text, textarea, number, date, checkbox, select, radio, multiselect) under `runtime/fields/`.
-- [ ] 4.10 Create `runtime/cross-field-validator.ts`: evaluates rules[] against FormGroup values.
-- [ ] 4.11 Create `form-builder.routes.ts`: lazy route for runtime; modify `app.routes.ts`.
-- [ ] 4.12 Tests: field renderers, grid layout (half/third), required+pattern validation, requiredIf+equals rules.
+- [x] 4.1 Create `shared/form-schemas/layout-definition.schema.ts`: Zod schema for layout JSON.
+- [x] 4.2 Create `shared/form-schemas/field-types.ts`: discriminated union for 8 field types.
+- [x] 4.3 Create `shared/form-schemas/validators.ts`: validator kind catalog.
+- [x] 4.4 Create `shared/form-schemas/rules.ts`: cross-field rule catalog (equals, notEquals, requiredIf, hiddenIf).
+- [x] 4.5 Create `shared/form-schemas/index.ts`: public re-exports.
+- [x] 4.6 Create `frontend/src/app/features/form-builder/models/`: TS types mirroring shared schemas.
+- [x] 4.7 Create `frontend/src/app/features/form-builder/services/runtime.service.ts`: HTTP client for GET /forms/:formKey.
+- [x] 4.8 Create `frontend/src/app/features/form-builder/runtime/form-runtime.component.ts`: signal-based standalone, Reactive Forms, section/field rendering.
+- [x] 4.9 Create 8 field renderer components (text, textarea, number, date, checkbox, select, radio, multiselect) under `runtime/fields/`.
+- [x] 4.10 Create `runtime/cross-field-validator.ts`: evaluates rules[] against FormGroup values.
+- [x] 4.11 Create `form-builder.routes.ts`: lazy route for runtime; modify `app.routes.ts`.
+- [x] 4.12 Tests: field renderers, grid layout (half/third), required+pattern validation, requiredIf+equals rules.
 
 **Dependencies**: None (parallel with backend). **LOC**: ~700.
 
