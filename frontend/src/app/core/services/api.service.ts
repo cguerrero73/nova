@@ -42,6 +42,14 @@ export class ApiService {
     return this.http.post<T>(`${this.baseUrl}${path}`, body);
   }
 
+  putRaw<T>(path: string, body: unknown): Observable<T> {
+    return this.http.put<T>(`${this.baseUrl}${path}`, body);
+  }
+
+  deleteRaw(path: string): Observable<null> {
+    return this.http.delete<null>(`${this.baseUrl}${path}`);
+  }
+
   delete(path: string, id: string): Observable<ApiResponse<null>> {
     return this.http.delete<ApiResponse<null>>(`${this.baseUrl}${path}/${id}`);
   }
