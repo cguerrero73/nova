@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
+	formbuilderapi "github.com/nova/backend/internal/adapters/api/formbuilder"
 	"github.com/nova/backend/internal/config"
 	"github.com/nova/backend/internal/infrastructure/middleware"
 	"github.com/nova/backend/internal/infrastructure/wire"
@@ -175,6 +176,9 @@ func main() {
 	syscodesGroup.Put("/:id", c.SyscodeHandler.Update)
 	syscodesGroup.Delete("/:id", c.SyscodeHandler.Delete)
 	syscodesGroup.Get("/type/:type", c.SyscodeHandler.GetByType)
+
+	// Form Builder
+	formbuilderapi.RegisterRoutes(protected, c.FormBuilderHandler)
 
 	// Graceful shutdown
 	shutdown := make(chan os.Signal, 1)

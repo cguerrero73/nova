@@ -9,6 +9,7 @@ import (
 	// API adapters (HTTP handlers)
 	authapi "github.com/nova/backend/internal/adapters/api/auth"
 	eventsapi "github.com/nova/backend/internal/adapters/api/events"
+	formbuilderapi "github.com/nova/backend/internal/adapters/api/formbuilder"
 	gridapi "github.com/nova/backend/internal/adapters/api/grid"
 	objectsapi "github.com/nova/backend/internal/adapters/api/objects"
 	orgsapi "github.com/nova/backend/internal/adapters/api/organizations"
@@ -25,6 +26,7 @@ import (
 	authdb "github.com/nova/backend/internal/adapters/db/auth"
 	eventsdb "github.com/nova/backend/internal/adapters/db/events"
 	fieldsdb "github.com/nova/backend/internal/adapters/db/fields"
+	formbuilderdb "github.com/nova/backend/internal/adapters/db/formbuilder"
 	griddb "github.com/nova/backend/internal/adapters/db/grid"
 	objectsdb "github.com/nova/backend/internal/adapters/db/objects"
 	orgsdb "github.com/nova/backend/internal/adapters/db/organizations"
@@ -40,6 +42,7 @@ import (
 	// Domain services
 	"github.com/nova/backend/internal/domain/auth"
 	"github.com/nova/backend/internal/domain/events"
+	"github.com/nova/backend/internal/domain/formbuilder"
 	"github.com/nova/backend/internal/domain/grid"
 	"github.com/nova/backend/internal/domain/objects"
 	"github.com/nova/backend/internal/domain/organizations"
@@ -55,19 +58,20 @@ import (
 // Container holds all dependencies
 type Container struct {
 	// Handlers (API adapters)
-	AuthHandler      *authapi.AuthHandler
-	UserHandler      *usersapi.UserHandler
-	OrgHandler       *orgsapi.OrganizationHandler
-	ObjectHandler    *objectsapi.ObjectHandler
-	StructureHandler *structureapi.StructureHandler
-	PartHandler      *partsapi.PartHandler
-	StoreHandler     *storesapi.StoreHandler
-	StockHandler     *stocksapi.StockHandler
-	EventHandler     *eventsapi.EventHandler
-	SyscodeHandler   *syscodesapi.SysCodeHandler
-	ScreenHandler    *screensapi.ScreenHandler
-	QueriesHandler   *queriesapi.QueriesHandler
-	GridHandler      *gridapi.GridHandler
+	AuthHandler        *authapi.AuthHandler
+	UserHandler        *usersapi.UserHandler
+	OrgHandler         *orgsapi.OrganizationHandler
+	ObjectHandler      *objectsapi.ObjectHandler
+	StructureHandler   *structureapi.StructureHandler
+	PartHandler        *partsapi.PartHandler
+	StoreHandler       *storesapi.StoreHandler
+	StockHandler       *stocksapi.StockHandler
+	EventHandler       *eventsapi.EventHandler
+	SyscodeHandler     *syscodesapi.SysCodeHandler
+	ScreenHandler      *screensapi.ScreenHandler
+	QueriesHandler     *queriesapi.QueriesHandler
+	GridHandler        *gridapi.GridHandler
+	FormBuilderHandler *formbuilderapi.FormHandler
 
 	// Repositories (needed for middleware wiring)
 	RoleRepository *rolesdb.PgRoleRepository
@@ -94,6 +98,13 @@ func NewContainer(pool *pgxpool.Pool, cfg *config.Config) *Container {
 	fieldRepo := fieldsdb.NewPgFieldRepository(pool)
 	roleRepo := rolesdb.NewPgRoleRepository(pool)
 
+	// Form builder repositories
+	fbFormRepo := formbuilderdb.NewPgFormRepository(pool)
+	fbLayoutRepo := formbuilderdb.NewPgLayoutRepository(pool)
+	fbVersionRepo := formbuilderdb.NewPgLayoutVersionRepository(pool)
+	fbAssignmentRepo := formbuilderdb.NewPgAssignmentRepository(pool)
+	fbAuditRepo := formbuilderdb.NewPgAuditLogRepository(pool)
+
 	// Domain services
 	authService := auth.NewAuthService(authUserRepo, authSessionRepo, cfg.JWT)
 	userService := users.NewUserService(userRepo)
@@ -107,23 +118,25 @@ func NewContainer(pool *pgxpool.Pool, cfg *config.Config) *Container {
 	syscodeService := syscodes.NewSysCodeService(syscodeRepo)
 	queryService := queries.NewService(queryRepo)
 	gridService := grid.NewServiceWithAll(gridRepo, fieldRepo, queryRepo)
+	formBuilderService := formbuilder.NewFormService(fbFormRepo, fbLayoutRepo, fbVersionRepo, fbAssignmentRepo, fbAuditRepo)
 
 	// API adapters (handlers)
 	return &Container{
-		AuthHandler:      authapi.NewAuthHandler(authService),
-		UserHandler:      usersapi.NewUserHandler(userService),
-		OrgHandler:       orgsapi.NewOrganizationHandler(orgService),
-		ObjectHandler:    objectsapi.NewObjectHandler(objectService),
-		StructureHandler: structureapi.NewStructureHandler(structureService),
-		PartHandler:      partsapi.NewPartHandler(partService),
-		StoreHandler:     storesapi.NewStoreHandler(storeService),
-		StockHandler:     stocksapi.NewStockHandler(stockService),
-		EventHandler:     eventsapi.NewEventHandler(eventService),
-		SyscodeHandler:   syscodesapi.NewSysCodeHandler(syscodeService),
-		ScreenHandler:    screensapi.NewScreenHandler(),
-		QueriesHandler:   queriesapi.NewQueriesHandler(queryService),
-		GridHandler:      gridapi.NewGridHandler(gridService),
-		RoleRepository:   roleRepo,
+		AuthHandler:        authapi.NewAuthHandler(authService),
+		UserHandler:        usersapi.NewUserHandler(userService),
+		OrgHandler:         orgsapi.NewOrganizationHandler(orgService),
+		ObjectHandler:      objectsapi.NewObjectHandler(objectService),
+		StructureHandler:   structureapi.NewStructureHandler(structureService),
+		PartHandler:        partsapi.NewPartHandler(partService),
+		StoreHandler:       storesapi.NewStoreHandler(storeService),
+		StockHandler:       stocksapi.NewStockHandler(stockService),
+		EventHandler:       eventsapi.NewEventHandler(eventService),
+		SyscodeHandler:     syscodesapi.NewSysCodeHandler(syscodeService),
+		ScreenHandler:      screensapi.NewScreenHandler(),
+		QueriesHandler:     queriesapi.NewQueriesHandler(queryService),
+		GridHandler:        gridapi.NewGridHandler(gridService),
+		FormBuilderHandler: formbuilderapi.NewFormHandler(formBuilderService),
+		RoleRepository:     roleRepo,
 	}
 }
 
