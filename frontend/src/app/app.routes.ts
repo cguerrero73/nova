@@ -74,6 +74,13 @@ export const routes: Routes = [
           ),
         canActivate: [adminGuard],
       },
+      {
+        path: 'form-builder',
+        loadChildren: () =>
+          import('./features/form-builder/form-builder.routes').then(
+            (m) => m.FORM_BUILDER_ROUTES
+          ),
+      },
     ],
   },
 ];
