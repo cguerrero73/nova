@@ -135,6 +135,17 @@ func (m *mockLayoutRepo) Archive(_ context.Context, layoutID int64) error {
 	return nil
 }
 
+func (m *mockLayoutRepo) ArchiveByFormID(_ context.Context, formID int64) error {
+	if byName, ok := m.layouts[formID]; ok {
+		for _, l := range byName {
+			if l.Status == "active" {
+				l.Status = "archived"
+			}
+		}
+	}
+	return nil
+}
+
 type mockVersionRepo struct {
 	versions map[int64]*formbuilder.LayoutVersion
 	nextID   int64
@@ -183,6 +194,22 @@ func (m *mockVersionRepo) UpdateDraftDefinition(_ context.Context, versionID int
 		v.Definition = definition
 	}
 	return nil
+}
+
+func (m *mockVersionRepo) UpdateKind(_ context.Context, versionID int64, newKind string) error {
+	if v, ok := m.versions[versionID]; ok {
+		v.Kind = newKind
+	}
+	return nil
+}
+
+func (m *mockVersionRepo) FindByLayoutAndVersionNumber(_ context.Context, layoutID int64, versionNumber int) (*formbuilder.LayoutVersion, error) {
+	for _, v := range m.versions {
+		if v.LayoutID == layoutID && v.VersionNumber == versionNumber {
+			return v, nil
+		}
+	}
+	return nil, nil
 }
 
 func (m *mockVersionRepo) ListByLayoutID(_ context.Context, layoutID int64) ([]*formbuilder.LayoutVersion, error) {
@@ -568,5 +595,517 @@ func TestListLayouts_IncludesDefault(t *testing.T) {
 	}
 	if layouts[0].Name != "default" {
 		t.Errorf("expected 'default', got '%s'", layouts[0].Name)
+	}
+}
+
+// --- PR2 Tests ---
+
+func TestSaveDraft_CreatesFirstDraft(t *testing.T) {
+	svc, _, lr, vr, _, au := newTestService()
+	ctx := context.Background()
+
+	form, defaultLayout, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+	_ = form
+
+	defJSON := json.RawMessage(`{"sections":[{"fields":[{"type":"text","label":"Name"}]}]}`)
+	version, err := svc.SaveDraft(ctx, form.Key, "default", defJSON, "admin")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if version.Kind != "draft" {
+		t.Errorf("expected kind 'draft', got '%s'", version.Kind)
+	}
+	if string(version.Definition) != string(defJSON) {
+		t.Errorf("definition mismatch")
+	}
+
+	// Verify draft pointer is set
+	updated, _ := lr.FindByID(ctx, defaultLayout.ID)
+	if updated.DraftVersionID == nil {
+		t.Fatal("expected draft pointer to be set")
+	}
+	if *updated.DraftVersionID != version.ID {
+		t.Errorf("expected draft pointer %d, got %d", version.ID, *updated.DraftVersionID)
+	}
+
+	// Verify audit
+	found := false
+	for _, e := range au.entries {
+		if e.Action == "version.draft_save" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected version.draft_save audit entry")
+	}
+
+	// Verify it's in the version repo
+	stored, _ := vr.FindByID(ctx, version.ID)
+	if stored == nil {
+		t.Fatal("draft version not found in repository")
+	}
+}
+
+func TestSaveDraft_UpdatesExistingDraft(t *testing.T) {
+	svc, _, lr, vr, _, _ := newTestService()
+	ctx := context.Background()
+
+	form, defaultLayout, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	// Create first draft
+	def1 := json.RawMessage(`{"v":1}`)
+	v1, _ := svc.SaveDraft(ctx, form.Key, "default", def1, "admin")
+
+	// Update draft
+	def2 := json.RawMessage(`{"v":2}`)
+	v2, err := svc.SaveDraft(ctx, form.Key, "default", def2, "admin")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if v2.ID != v1.ID {
+		t.Errorf("expected same draft ID, got %d vs %d", v1.ID, v2.ID)
+	}
+
+	// Verify the definition was updated
+	stored, _ := vr.FindByID(ctx, v1.ID)
+	if string(stored.Definition) != string(def2) {
+		t.Errorf("expected updated definition, got %s", string(stored.Definition))
+	}
+
+	// Draft pointer should still point to same version
+	updated, _ := lr.FindByID(ctx, defaultLayout.ID)
+	if *updated.DraftVersionID != v1.ID {
+		t.Errorf("draft pointer changed unexpectedly")
+	}
+}
+
+func TestPublish_Success(t *testing.T) {
+	svc, _, lr, vr, _, au := newTestService()
+	ctx := context.Background()
+
+	form, defaultLayout, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	// Create a draft
+	defJSON := json.RawMessage(`{"sections":[]}`)
+	draft, _ := svc.SaveDraft(ctx, form.Key, "default", defJSON, "admin")
+
+	// Publish
+	published, err := svc.Publish(ctx, form.Key, "default", "Initial publish", "admin")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if published.Kind != "published" {
+		t.Errorf("expected kind 'published', got '%s'", published.Kind)
+	}
+	if published.Description != "Initial publish" {
+		t.Errorf("expected description 'Initial publish', got '%s'", published.Description)
+	}
+	if string(published.Definition) != string(defJSON) {
+		t.Errorf("definition should match draft")
+	}
+
+	// Verify layout pointers
+	updated, _ := lr.FindByID(ctx, defaultLayout.ID)
+	if updated.DraftVersionID != nil {
+		t.Error("expected draft pointer to be cleared")
+	}
+	if updated.PublishedVersionID == nil {
+		t.Fatal("expected published pointer to be set")
+	}
+	if *updated.PublishedVersionID != published.ID {
+		t.Errorf("expected published pointer %d, got %d", published.ID, *updated.PublishedVersionID)
+	}
+
+	// Verify old draft is now archived
+	oldDraft, _ := vr.FindByID(ctx, draft.ID)
+	if oldDraft.Kind != "archived" {
+		t.Errorf("expected old draft kind 'archived', got '%s'", oldDraft.Kind)
+	}
+
+	// Verify audit
+	found := false
+	for _, e := range au.entries {
+		if e.Action == "version.publish" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected version.publish audit entry")
+	}
+}
+
+func TestPublish_RequiresDescription(t *testing.T) {
+	svc, _, _, _, _, _ := newTestService()
+	ctx := context.Background()
+
+	form, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	defJSON := json.RawMessage(`{"sections":[]}`)
+	svc.SaveDraft(ctx, form.Key, "default", defJSON, "admin")
+
+	_, err := svc.Publish(ctx, form.Key, "default", "", "admin")
+	if err == nil {
+		t.Fatal("expected error for empty description")
+	}
+	if err != formbuilder.ErrPublishDescriptionRequired {
+		t.Errorf("expected ErrPublishDescriptionRequired, got %v", err)
+	}
+}
+
+func TestPublish_NoDraft_ReturnsError(t *testing.T) {
+	svc, _, _, _, _, _ := newTestService()
+	ctx := context.Background()
+
+	form, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	_, err := svc.Publish(ctx, form.Key, "default", "No draft exists", "admin")
+	if err == nil {
+		t.Fatal("expected error for no draft")
+	}
+	if err != formbuilder.ErrNoDraft {
+		t.Errorf("expected ErrNoDraft, got %v", err)
+	}
+}
+
+func TestRevert_CreatesNewDraftFromPublishedVersion(t *testing.T) {
+	svc, _, lr, _, _, _ := newTestService()
+	ctx := context.Background()
+
+	form, defaultLayout, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	// Create and publish v1
+	def1 := json.RawMessage(`{"v":1}`)
+	svc.SaveDraft(ctx, form.Key, "default", def1, "admin")
+	pub1, _ := svc.Publish(ctx, form.Key, "default", "v1", "admin")
+
+	// Create and publish v2
+	def2 := json.RawMessage(`{"v":2}`)
+	svc.SaveDraft(ctx, form.Key, "default", def2, "admin")
+	svc.Publish(ctx, form.Key, "default", "v2", "admin")
+
+	// Revert to v1
+	reverted, err := svc.Revert(ctx, form.Key, "default", pub1.VersionNumber, "admin")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if reverted.Kind != "draft" {
+		t.Errorf("expected kind 'draft', got '%s'", reverted.Kind)
+	}
+	if string(reverted.Definition) != string(def1) {
+		t.Errorf("expected v1 definition, got %s", string(reverted.Definition))
+	}
+
+	// Verify draft pointer is set
+	updated, _ := lr.FindByID(ctx, defaultLayout.ID)
+	if updated.DraftVersionID == nil {
+		t.Fatal("expected draft pointer to be set after revert")
+	}
+}
+
+func TestArchiveLayout_RejectsDefaultWhileFormActive(t *testing.T) {
+	svc, _, _, _, _, _ := newTestService()
+	ctx := context.Background()
+
+	form, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	err := svc.ArchiveLayout(ctx, form.Key, "default", "admin")
+	if err == nil {
+		t.Fatal("expected ErrCannotArchiveDefault")
+	}
+	if err != formbuilder.ErrCannotArchiveDefault {
+		t.Errorf("expected ErrCannotArchiveDefault, got %v", err)
+	}
+}
+
+func TestArchiveLayout_AllowsNonDefault(t *testing.T) {
+	svc, _, lr, _, _, au := newTestService()
+	ctx := context.Background()
+
+	form, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	layout, _ := svc.CreateLayout(ctx, form.Key, &formbuilder.CreateLayoutRequest{
+		Name:        "admin-full",
+		DisplayName: "Admin Full",
+	}, "admin")
+
+	err := svc.ArchiveLayout(ctx, form.Key, "admin-full", "admin")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify layout is archived
+	updated, _ := lr.FindByID(ctx, layout.ID)
+	if updated.Status != "archived" {
+		t.Errorf("expected status 'archived', got '%s'", updated.Status)
+	}
+
+	// Verify audit
+	found := false
+	for _, e := range au.entries {
+		if e.Action == "layout.archive" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected layout.archive audit entry")
+	}
+}
+
+func TestArchiveForm_CascadesToLayouts(t *testing.T) {
+	svc, _, lr, _, _, _ := newTestService()
+	ctx := context.Background()
+
+	form, defaultLayout, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	adminLayout, _ := svc.CreateLayout(ctx, form.Key, &formbuilder.CreateLayoutRequest{
+		Name:        "admin-full",
+		DisplayName: "Admin Full",
+	}, "admin")
+
+	err := svc.ArchiveForm(ctx, form.Key, "admin")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify both layouts are archived
+	def, _ := lr.FindByID(ctx, defaultLayout.ID)
+	if def.Status != "archived" {
+		t.Errorf("expected default layout archived, got '%s'", def.Status)
+	}
+	admin, _ := lr.FindByID(ctx, adminLayout.ID)
+	if admin.Status != "archived" {
+		t.Errorf("expected admin layout archived, got '%s'", admin.Status)
+	}
+}
+
+func TestAssignRole_Success(t *testing.T) {
+	svc, _, lr, _, ar, au := newTestService()
+	ctx := context.Background()
+
+	form, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	adminLayout, _ := svc.CreateLayout(ctx, form.Key, &formbuilder.CreateLayoutRequest{
+		Name:        "admin-full",
+		DisplayName: "Admin Full",
+	}, "admin")
+
+	assignment, err := svc.AssignRole(ctx, form.Key, "admin", "admin-full", "designer")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if assignment.RoleName != "admin" {
+		t.Errorf("expected role 'admin', got '%s'", assignment.RoleName)
+	}
+	if assignment.LayoutID != adminLayout.ID {
+		t.Errorf("expected layout ID %d, got %d", adminLayout.ID, assignment.LayoutID)
+	}
+
+	// Verify in repo
+	active, _ := ar.FindActiveByFormAndRole(ctx, form.ID, "admin")
+	if active == nil {
+		t.Fatal("expected active assignment")
+	}
+
+	// Verify audit
+	found := false
+	for _, e := range au.entries {
+		if e.Action == "layout.assign" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected layout.assign audit entry")
+	}
+
+	_ = lr
+}
+
+func TestAssignRole_ReplacesExisting(t *testing.T) {
+	svc, _, _, _, ar, _ := newTestService()
+	ctx := context.Background()
+
+	form, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	svc.CreateLayout(ctx, form.Key, &formbuilder.CreateLayoutRequest{
+		Name:        "layout-a",
+		DisplayName: "Layout A",
+	}, "admin")
+	svc.CreateLayout(ctx, form.Key, &formbuilder.CreateLayoutRequest{
+		Name:        "layout-b",
+		DisplayName: "Layout B",
+	}, "admin")
+
+	// First assignment
+	a1, _ := svc.AssignRole(ctx, form.Key, "admin", "layout-a", "designer")
+
+	// Replace with layout-b
+	a2, err := svc.AssignRole(ctx, form.Key, "admin", "layout-b", "designer")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if a2.ID == a1.ID {
+		t.Error("expected new assignment ID")
+	}
+
+	// Old assignment should be revoked
+	all, _ := ar.ListByFormID(ctx, form.ID)
+	if len(all) != 1 {
+		t.Errorf("expected 1 active assignment, got %d", len(all))
+	}
+}
+
+func TestRevokeAssignment_Success(t *testing.T) {
+	svc, _, _, _, _, au := newTestService()
+	ctx := context.Background()
+
+	form, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	svc.CreateLayout(ctx, form.Key, &formbuilder.CreateLayoutRequest{
+		Name:        "admin-full",
+		DisplayName: "Admin Full",
+	}, "admin")
+
+	svc.AssignRole(ctx, form.Key, "admin", "admin-full", "designer")
+
+	err := svc.RevokeAssignment(ctx, form.Key, "admin", "designer")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify audit
+	found := false
+	for _, e := range au.entries {
+		if e.Action == "layout.unassign" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected layout.unassign audit entry")
+	}
+}
+
+func TestRevokeAssignment_NotFound(t *testing.T) {
+	svc, _, _, _, _, _ := newTestService()
+	ctx := context.Background()
+
+	form, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	err := svc.RevokeAssignment(ctx, form.Key, "nonexistent", "admin")
+	if err == nil {
+		t.Fatal("expected error for non-existent assignment")
+	}
+	if err != formbuilder.ErrAssignmentNotFound {
+		t.Errorf("expected ErrAssignmentNotFound, got %v", err)
+	}
+}
+
+func TestListVersions_ReturnsAllVersions(t *testing.T) {
+	svc, _, _, _, _, _ := newTestService()
+	ctx := context.Background()
+
+	form, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	// Create and publish v1
+	def1 := json.RawMessage(`{"v":1}`)
+	svc.SaveDraft(ctx, form.Key, "default", def1, "admin")
+	svc.Publish(ctx, form.Key, "default", "v1", "admin")
+
+	// Create and publish v2
+	def2 := json.RawMessage(`{"v":2}`)
+	svc.SaveDraft(ctx, form.Key, "default", def2, "admin")
+	svc.Publish(ctx, form.Key, "default", "v2", "admin")
+
+	versions, err := svc.ListVersions(ctx, form.Key, "default")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Should have: v1 (published), v1 draft (archived), v2 (published), v2 draft (archived) = 4
+	if len(versions) < 2 {
+		t.Errorf("expected at least 2 versions, got %d", len(versions))
+	}
+}
+
+func TestGetVersion_ReturnsSpecificVersion(t *testing.T) {
+	svc, _, _, _, _, _ := newTestService()
+	ctx := context.Background()
+
+	form, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	def1 := json.RawMessage(`{"v":1}`)
+	svc.SaveDraft(ctx, form.Key, "default", def1, "admin")
+	pub, _ := svc.Publish(ctx, form.Key, "default", "v1", "admin")
+
+	version, err := svc.GetVersion(ctx, form.Key, "default", pub.VersionNumber)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if version.VersionNumber != pub.VersionNumber {
+		t.Errorf("expected version %d, got %d", pub.VersionNumber, version.VersionNumber)
+	}
+	if string(version.Definition) != string(def1) {
+		t.Errorf("definition mismatch")
+	}
+}
+
+func TestGetVersion_NotFound(t *testing.T) {
+	svc, _, _, _, _, _ := newTestService()
+	ctx := context.Background()
+
+	form, _, _ := svc.CreateForm(ctx, &formbuilder.CreateFormRequest{
+		Key:  "test-form",
+		Name: "Test",
+	}, "admin")
+
+	_, err := svc.GetVersion(ctx, form.Key, "default", 999)
+	if err == nil {
+		t.Fatal("expected error for non-existent version")
+	}
+	if err != formbuilder.ErrVersionNotFound {
+		t.Errorf("expected ErrVersionNotFound, got %v", err)
 	}
 }
