@@ -22,6 +22,9 @@ type LayoutRepository interface {
 	// Create inserts a new layout. Returns the layout with ID populated.
 	Create(ctx context.Context, layout *Layout) error
 
+	// FindByID loads a layout by its ID.
+	FindByID(ctx context.Context, id int64) (*Layout, error)
+
 	// FindByFormAndName loads a layout by form ID and name.
 	FindByFormAndName(ctx context.Context, formID int64, name string) (*Layout, error)
 
