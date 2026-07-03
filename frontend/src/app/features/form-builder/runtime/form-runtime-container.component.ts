@@ -15,12 +15,12 @@ import { FormRuntimeComponent } from './form-runtime.component';
   template: `
     @if (store.loading()) {
       <div class="loading-state">Loading form...</div>
-    } @else if (store.error(); as err) {
+    } @else if (store.error()) {
       <div class="error-state">
-        <p>{{ err }}</p>
+        <p>{{ store.error() }}</p>
       </div>
-    } @else if (store.layout(); as layoutDef) {
-      <app-form-runtime [layout]="layoutDef" />
+    } @else if (store.layout()) {
+      <app-form-runtime [layout]="store.layout()" />
     }
   `,
   styles: [`

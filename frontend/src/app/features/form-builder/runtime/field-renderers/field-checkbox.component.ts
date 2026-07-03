@@ -17,7 +17,7 @@ import { CheckboxField } from '../../models/layout-definition.model';
         />
         <span class="field-label">
           {{ field().ui.label }}
-          @if (isRequired) { <span class="required-mark">*</span> }
+          @if (isRequired()) { <span class="required-mark">*</span> }
         </span>
       </label>
       @if (field().ui.helpText) {

@@ -29,28 +29,28 @@ import { FieldMultiselectComponent } from './field-renderers/field-multiselect.c
   template: `
     @switch (field().type) {
       @case ('text') {
-        <app-field-text [field]="field()" [control]="control()" [isRequired]="isRequired()" />
+        <app-field-text [field]="$any(field())" [control]="control()" [isRequired]="isRequired()" />
       }
       @case ('textarea') {
-        <app-field-textarea [field]="field()" [control]="control()" [isRequired]="isRequired()" />
+        <app-field-textarea [field]="$any(field())" [control]="control()" [isRequired]="isRequired()" />
       }
       @case ('number') {
-        <app-field-number [field]="field()" [control]="control()" [isRequired]="isRequired()" />
+        <app-field-number [field]="$any(field())" [control]="control()" [isRequired]="isRequired()" />
       }
       @case ('date') {
-        <app-field-date [field]="field()" [control]="control()" [isRequired]="isRequired()" />
+        <app-field-date [field]="$any(field())" [control]="control()" [isRequired]="isRequired()" />
       }
       @case ('checkbox') {
-        <app-field-checkbox [field]="field()" [control]="control()" [isRequired]="isRequired()" />
+        <app-field-checkbox [field]="$any(field())" [control]="control()" [isRequired]="isRequired()" />
       }
       @case ('select') {
-        <app-field-select [field]="field()" [control]="control()" [isRequired]="isRequired()" />
+        <app-field-select [field]="$any(field())" [control]="control()" [isRequired]="isRequired()" />
       }
       @case ('radio') {
-        <app-field-radio [field]="field()" [control]="control()" [isRequired]="isRequired()" />
+        <app-field-radio [field]="$any(field())" [control]="control()" [isRequired]="isRequired()" />
       }
       @case ('multiselect') {
-        <app-field-multiselect [field]="field()" [control]="control()" [isRequired]="isRequired()" />
+        <app-field-multiselect [field]="$any(field())" [control]="control()" [isRequired]="isRequired()" />
       }
     }
   `,

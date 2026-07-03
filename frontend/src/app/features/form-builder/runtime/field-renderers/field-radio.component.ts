@@ -11,7 +11,7 @@ import { RadioField } from '../../models/layout-definition.model';
     <div class="field-wrapper">
       <span class="field-label">
         {{ field().ui.label }}
-        @if (isRequired) { <span class="required-mark">*</span> }
+        @if (isRequired()) { <span class="required-mark">*</span> }
       </span>
       <div class="radio-group" [attr.id]="field().name" role="radiogroup">
         @for (opt of field().options; track opt.value) {

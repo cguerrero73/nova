@@ -11,7 +11,7 @@ import { SelectField } from '../../models/layout-definition.model';
     <div class="field-wrapper">
       <label [for]="field().name" class="field-label">
         {{ field().ui.label }}
-        @if (isRequired) { <span class="required-mark">*</span> }
+        @if (isRequired()) { <span class="required-mark">*</span> }
       </label>
       <select
         [id]="field().name"
