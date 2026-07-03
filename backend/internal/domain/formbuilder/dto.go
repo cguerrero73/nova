@@ -26,6 +26,11 @@ type AssignRoleRequest struct {
 	LayoutName string `json:"layoutName"`
 }
 
+// RevertRequest is the HTTP request body for reverting to a previous version.
+type RevertRequest struct {
+	VersionNumber int `json:"versionNumber"`
+}
+
 // FormResponse is the HTTP response for a single form.
 type FormResponse struct {
 	ID          int64  `json:"id"`

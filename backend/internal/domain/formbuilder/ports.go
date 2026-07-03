@@ -36,6 +36,9 @@ type LayoutRepository interface {
 
 	// Archive sets fl_status to 'archived'.
 	Archive(ctx context.Context, layoutID int64) error
+
+	// ArchiveByFormID archives all layouts for a form (cascade from form archive).
+	ArchiveByFormID(ctx context.Context, formID int64) error
 }
 
 // LayoutVersionRepository manages version snapshot persistence.
@@ -54,6 +57,12 @@ type LayoutVersionRepository interface {
 
 	// UpdateDraftDefinition updates the JSON definition of an existing draft.
 	UpdateDraftDefinition(ctx context.Context, versionID int64, definition []byte) error
+
+	// UpdateKind changes the kind of a version row (e.g., draft → archived during publish).
+	UpdateKind(ctx context.Context, versionID int64, newKind string) error
+
+	// FindByLayoutAndVersionNumber loads a specific version by layout ID and version number.
+	FindByLayoutAndVersionNumber(ctx context.Context, layoutID int64, versionNumber int) (*LayoutVersion, error)
 
 	// ListByLayoutID returns all versions for a layout ordered by version_number DESC.
 	ListByLayoutID(ctx context.Context, layoutID int64) ([]*LayoutVersion, error)

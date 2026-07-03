@@ -132,3 +132,14 @@ func (r *pgLayoutRepository) Archive(ctx context.Context, layoutID int64) error 
 		return err
 	})
 }
+
+func (r *pgLayoutRepository) ArchiveByFormID(ctx context.Context, formID int64) error {
+	return infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, `
+			UPDATE eamform_layouts
+			SET fl_status = 'archived', fl_updated_at = now()
+			WHERE fl_form_id = $1 AND fl_status = 'active'
+		`, formID)
+		return err
+	})
+}

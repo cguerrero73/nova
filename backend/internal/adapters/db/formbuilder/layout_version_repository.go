@@ -108,6 +108,40 @@ func (r *pgLayoutVersionRepository) UpdateDraftDefinition(ctx context.Context, v
 	})
 }
 
+func (r *pgLayoutVersionRepository) UpdateKind(ctx context.Context, versionID int64, newKind string) error {
+	return infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, `
+			UPDATE eamform_layout_versions
+			SET flv_kind = $2
+			WHERE flv_id = $1
+		`, versionID, newKind)
+		return err
+	})
+}
+
+func (r *pgLayoutVersionRepository) FindByLayoutAndVersionNumber(ctx context.Context, layoutID int64, versionNumber int) (*formbuilder.LayoutVersion, error) {
+	var result *formbuilder.LayoutVersion
+	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		var v formbuilder.LayoutVersion
+		err := tx.QueryRow(ctx, `
+			SELECT flv_id, flv_layout_id, flv_version_number, flv_kind,
+			       COALESCE(flv_description, ''), flv_definition,
+			       COALESCE(flv_created_by, ''), flv_created_at, flv_published_at
+			FROM eamform_layout_versions
+			WHERE flv_layout_id = $1 AND flv_version_number = $2
+		`, layoutID, versionNumber).Scan(&v.ID, &v.LayoutID, &v.VersionNumber, &v.Kind, &v.Description, &v.Definition, &v.CreatedBy, &v.CreatedAt, &v.PublishedAt)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("scanning version: %w", err)
+		}
+		result = &v
+		return nil
+	})
+	return result, err
+}
+
 func (r *pgLayoutVersionRepository) ListByLayoutID(ctx context.Context, layoutID int64) ([]*formbuilder.LayoutVersion, error) {
 	var result []*formbuilder.LayoutVersion
 	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
