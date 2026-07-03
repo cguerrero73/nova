@@ -470,6 +470,11 @@ func (s *FormService) AssignRole(ctx context.Context, formKey, roleName, layoutN
 		return nil, err
 	}
 	if layout == nil {
+		// Layout not found in this form — check if it exists in another form
+		otherLayout, _ := s.layouts.FindByName(ctx, layoutName)
+		if otherLayout != nil {
+			return nil, ErrCrossFormLayout
+		}
 		return nil, ErrLayoutNotFound
 	}
 	if layout.Status == "archived" {
@@ -564,6 +569,27 @@ func (s *FormService) GetVersion(ctx context.Context, formKey, layoutName string
 	}
 
 	return version, nil
+}
+
+// ListAudit returns paged audit entries for a form with optional filters.
+func (s *FormService) ListAudit(ctx context.Context, formKey string, filter AuditFilter, page, pageSize int) ([]*AuditEntry, int, error) {
+	form, err := s.forms.FindByKey(ctx, formKey)
+	if err != nil {
+		return nil, 0, err
+	}
+	if form == nil {
+		return nil, 0, ErrFormNotFound
+	}
+
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 || pageSize > 100 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
+
+	return s.audit.ListByForm(ctx, form.ID, filter, pageSize, offset)
 }
 
 // resolveFormLayout loads a form and a layout by their keys.

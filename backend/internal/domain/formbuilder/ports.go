@@ -28,6 +28,9 @@ type LayoutRepository interface {
 	// FindByFormAndName loads a layout by form ID and name.
 	FindByFormAndName(ctx context.Context, formID int64, name string) (*Layout, error)
 
+	// FindByName loads a layout by name across all forms (for cross-form detection).
+	FindByName(ctx context.Context, name string) (*Layout, error)
+
 	// ListByFormID returns all layouts for a form.
 	ListByFormID(ctx context.Context, formID int64) ([]*Layout, error)
 
@@ -89,5 +92,6 @@ type AuditLogRepository interface {
 	Create(ctx context.Context, entry *AuditEntry) error
 
 	// ListByForm returns audit entries for a form, with optional filters and pagination.
-	ListByForm(ctx context.Context, formID int64, action string, entityType string, limit, offset int) ([]*AuditEntry, int, error)
+	// Returns entries, total count, and error.
+	ListByForm(ctx context.Context, formID int64, filter AuditFilter, limit, offset int) ([]*AuditEntry, int, error)
 }

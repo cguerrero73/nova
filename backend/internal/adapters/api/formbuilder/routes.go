@@ -34,4 +34,7 @@ func RegisterRoutes(group fiber.Router, handler *FormHandler) {
 	forms.Get("/forms/:formKey/assignments", handler.ListAssignments)
 	forms.Put("/forms/:formKey/assignments/:roleName", handler.AssignRole)
 	forms.Delete("/forms/:formKey/assignments/:roleName", handler.RevokeAssignment)
+
+	// Audit route
+	forms.Get("/forms/:formKey/audit", handler.ListAudit)
 }

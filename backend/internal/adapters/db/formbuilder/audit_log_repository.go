@@ -33,7 +33,7 @@ func (r *pgAuditLogRepository) Create(ctx context.Context, entry *formbuilder.Au
 	})
 }
 
-func (r *pgAuditLogRepository) ListByForm(ctx context.Context, formID int64, action string, entityType string, limit, offset int) ([]*formbuilder.AuditEntry, int, error) {
+func (r *pgAuditLogRepository) ListByForm(ctx context.Context, formID int64, filter formbuilder.AuditFilter, limit, offset int) ([]*formbuilder.AuditEntry, int, error) {
 	var total int
 	var result []*formbuilder.AuditEntry
 
@@ -45,7 +45,6 @@ func (r *pgAuditLogRepository) ListByForm(ctx context.Context, formID int64, act
 		// - entity_type = 'layout' AND entity_id IN (layouts for this form)
 		// - entity_type = 'version' AND entity_id IN (versions for layouts of this form)
 		// - entity_type = 'assignment' AND entity_id IN (assignments for this form)
-		// For simplicity, we use a subquery approach.
 		baseWhere := `
 			(fal_entity_type = 'form' AND fal_entity_id = $1)
 			OR (fal_entity_type = 'layout' AND fal_entity_id IN (SELECT fl_id FROM eamform_layouts WHERE fl_form_id = $1))
@@ -53,27 +52,39 @@ func (r *pgAuditLogRepository) ListByForm(ctx context.Context, formID int64, act
 			OR (fal_entity_type = 'assignment' AND fal_entity_id IN (SELECT fra_id FROM eamform_role_assignments WHERE fra_form_id = $1))
 		`
 
-		countQuery := `SELECT COUNT(*) FROM eamform_audit_log WHERE ` + baseWhere
-		if action != "" {
-			countQuery += ` AND fal_action = $2`
-		}
-		if entityType != "" {
-			paramIdx := 2
-			if action != "" {
-				paramIdx = 3
-			}
-			countQuery += fmt.Sprintf(` AND fal_entity_type = $%d`, paramIdx)
-		}
-
+		// Build dynamic filter clause
+		filterClause := ""
 		var args []interface{}
 		args = append(args, formID)
-		if action != "" {
-			args = append(args, action)
+		paramIdx := 2
+
+		if filter.Action != "" {
+			filterClause += fmt.Sprintf(` AND fal_action = $%d`, paramIdx)
+			args = append(args, filter.Action)
+			paramIdx++
 		}
-		if entityType != "" {
-			args = append(args, entityType)
+		if filter.EntityType != "" {
+			filterClause += fmt.Sprintf(` AND fal_entity_type = $%d`, paramIdx)
+			args = append(args, filter.EntityType)
+			paramIdx++
+		}
+		if filter.Actor != "" {
+			filterClause += fmt.Sprintf(` AND fal_actor_user_id = $%d`, paramIdx)
+			args = append(args, filter.Actor)
+			paramIdx++
+		}
+		if filter.From != nil {
+			filterClause += fmt.Sprintf(` AND fal_created_at >= $%d`, paramIdx)
+			args = append(args, *filter.From)
+			paramIdx++
+		}
+		if filter.To != nil {
+			filterClause += fmt.Sprintf(` AND fal_created_at <= $%d`, paramIdx)
+			args = append(args, *filter.To)
+			paramIdx++
 		}
 
+		countQuery := `SELECT COUNT(*) FROM eamform_audit_log WHERE ` + baseWhere + filterClause
 		if err := tx.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 			return fmt.Errorf("counting audit entries: %w", err)
 		}
@@ -82,21 +93,10 @@ func (r *pgAuditLogRepository) ListByForm(ctx context.Context, formID int64, act
 			SELECT fal_id, fal_actor_user_id, fal_action, fal_entity_type, fal_entity_id,
 			       COALESCE(fal_metadata, '{}'::jsonb), COALESCE(fal_note, ''), fal_created_at
 			FROM eamform_audit_log
-			WHERE ` + baseWhere
-		if action != "" {
-			dataQuery += ` AND fal_action = $2`
-		}
-		if entityType != "" {
-			paramIdx := 2
-			if action != "" {
-				paramIdx = 3
-			}
-			dataQuery += fmt.Sprintf(` AND fal_entity_type = $%d`, paramIdx)
-		}
+			WHERE ` + baseWhere + filterClause
 		dataQuery += ` ORDER BY fal_created_at DESC`
 
-		paramCount := len(args)
-		dataQuery += fmt.Sprintf(` LIMIT $%d OFFSET $%d`, paramCount+1, paramCount+2)
+		dataQuery += fmt.Sprintf(` LIMIT $%d OFFSET $%d`, paramIdx, paramIdx+1)
 		args = append(args, limit, offset)
 
 		rows, err := tx.Query(ctx, dataQuery, args...)

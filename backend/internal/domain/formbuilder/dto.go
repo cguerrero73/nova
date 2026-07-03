@@ -89,3 +89,23 @@ type ResolveResponse struct {
 	Version    int             `json:"version"`
 	Definition json.RawMessage `json:"definition"`
 }
+
+// AuditEntryResponse is the HTTP response for a single audit entry.
+type AuditEntryResponse struct {
+	ID          int64           `json:"id"`
+	ActorUserID string          `json:"actorUserId"`
+	Action      string          `json:"action"`
+	EntityType  string          `json:"entityType"`
+	EntityID    int64           `json:"entityId"`
+	Metadata    json.RawMessage `json:"metadata"`
+	Note        string          `json:"note"`
+	CreatedAt   string          `json:"createdAt"`
+}
+
+// AuditListResponse is the paged HTTP response for audit entries.
+type AuditListResponse struct {
+	Items    []AuditEntryResponse `json:"items"`
+	Total    int                  `json:"total"`
+	Page     int                  `json:"page"`
+	PageSize int                  `json:"pageSize"`
+}

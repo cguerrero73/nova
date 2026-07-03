@@ -82,6 +82,31 @@ func (r *pgLayoutRepository) FindByFormAndName(ctx context.Context, formID int64
 	return result, err
 }
 
+func (r *pgLayoutRepository) FindByName(ctx context.Context, name string) (*formbuilder.Layout, error) {
+	var result *formbuilder.Layout
+	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
+		var l formbuilder.Layout
+		err := tx.QueryRow(ctx, `
+			SELECT fl_id, fl_form_id, fl_name, fl_display_name, COALESCE(fl_description, ''),
+			       fl_status, fl_draft_version_id, fl_published_version_id,
+			       COALESCE(fl_created_by, ''), fl_created_at, fl_updated_at
+			FROM eamform_layouts
+			WHERE fl_name = $1
+			LIMIT 1
+		`, name).Scan(&l.ID, &l.FormID, &l.Name, &l.DisplayName, &l.Description,
+			&l.Status, &l.DraftVersionID, &l.PublishedVersionID, &l.CreatedBy, &l.CreatedAt, &l.UpdatedAt)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("scanning layout: %w", err)
+		}
+		result = &l
+		return nil
+	})
+	return result, err
+}
+
 func (r *pgLayoutRepository) ListByFormID(ctx context.Context, formID int64) ([]*formbuilder.Layout, error) {
 	var result []*formbuilder.Layout
 	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {

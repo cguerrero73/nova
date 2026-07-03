@@ -1,6 +1,9 @@
 package formbuilder
 
 import (
+	"strconv"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/nova/backend/internal/domain/formbuilder"
@@ -380,6 +383,65 @@ func (h *FormHandler) RevokeAssignment(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(dto.NewMessageResponse("Assignment revoked"))
+}
+
+// ListAudit handles GET /api/formbuilder/forms/:formKey/audit
+func (h *FormHandler) ListAudit(c *fiber.Ctx) error {
+	if !requirePermission(c, "view") {
+		return nil
+	}
+
+	formKey := c.Params("formKey")
+
+	// Parse pagination
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	pageSize, _ := strconv.Atoi(c.Query("pageSize", "20"))
+
+	// Parse filters
+	filter := formbuilder.AuditFilter{
+		Action:     c.Query("action"),
+		EntityType: c.Query("entity_type"),
+		Actor:      c.Query("actor"),
+	}
+	if from := c.Query("from"); from != "" {
+		if t, err := time.Parse("2006-01-02", from); err == nil {
+			filter.From = &t
+		}
+	}
+	if to := c.Query("to"); to != "" {
+		if t, err := time.Parse("2006-01-02", to); err == nil {
+			filter.To = &t
+		}
+	}
+
+	entries, total, err := h.service.ListAudit(c.UserContext(), formKey, filter, page, pageSize)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			return c.Status(appErr.Status).JSON(appErr)
+		}
+		return c.Status(500).JSON(dto.NewErrorResponse("INTERNAL", err.Error()))
+	}
+
+	items := make([]formbuilder.AuditEntryResponse, 0, len(entries))
+	for _, e := range entries {
+		items = append(items, formbuilder.AuditEntryResponse{
+			ID:          e.ID,
+			ActorUserID: e.ActorUserID,
+			Action:      e.Action,
+			EntityType:  e.EntityType,
+			EntityID:    e.EntityID,
+			Metadata:    e.Metadata,
+			Note:        e.Note,
+			CreatedAt:   e.CreatedAt.Format(time.RFC3339),
+		})
+	}
+
+	return c.JSON(dto.NewSuccessResponse(formbuilder.AuditListResponse{
+		Items:    items,
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
+	}))
 }
 
 // requirePermission checks if the active role has the given formbuilder permission.

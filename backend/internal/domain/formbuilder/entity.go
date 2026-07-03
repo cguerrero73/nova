@@ -67,3 +67,12 @@ type AuditEntry struct {
 	Note        string          `json:"fal_note"`
 	CreatedAt   time.Time       `json:"fal_created_at"`
 }
+
+// AuditFilter defines optional filters for audit log retrieval.
+type AuditFilter struct {
+	Action     string
+	EntityType string
+	Actor      string
+	From       *time.Time
+	To         *time.Time
+}
