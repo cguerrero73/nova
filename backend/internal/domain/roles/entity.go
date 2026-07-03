@@ -3,15 +3,15 @@ package roles
 import "time"
 
 type Role struct {
-	ID           string                 `json:"rol_id"`
-	Name         string                 `json:"rol_name"`
-	Desc         string                 `json:"rol_desc"`
-	IsSystem     bool                   `json:"rol_is_system"`
-	Permissions  map[string]map[string]bool `json:"rol_permissions"`
-	NotUsed      *string                `json:"rol_notused,omitempty"`
-	TenantID     string                 `json:"rol_tenant_id"`
-	CreatedAt    time.Time              `json:"rol_created_at"`
-	UpdatedAt    time.Time              `json:"rol_updated_at"`
+	ID          string                     `json:"rol_id"`
+	Name        string                     `json:"rol_name"`
+	Desc        string                     `json:"rol_desc"`
+	IsSystem    bool                       `json:"rol_is_system"`
+	Permissions map[string]map[string]bool `json:"rol_permissions"`
+	NotUsed     *string                    `json:"rol_notused,omitempty"`
+	TenantID    string                     `json:"rol_tenant_id"`
+	CreatedAt   time.Time                  `json:"rol_created_at"`
+	UpdatedAt   time.Time                  `json:"rol_updated_at"`
 }
 
 func (r *Role) HasPermission(screen, action string) bool {
@@ -19,16 +19,23 @@ func (r *Role) HasPermission(screen, action string) bool {
 		return false
 	}
 
+	// Check wildcard screen with wildcard action (full access)
 	if screenPerms, ok := r.Permissions["*"]; ok {
 		if actionPerm, ok := screenPerms["*"]; ok && actionPerm {
 			return true
 		}
+		// Check wildcard screen with specific action
+		if actionPerm, ok := screenPerms[action]; ok && actionPerm {
+			return true
+		}
 	}
 
+	// Check specific screen
 	if screenPerms, ok := r.Permissions[screen]; ok {
 		if actionPerm, ok := screenPerms[action]; ok && actionPerm {
 			return true
 		}
+		// Check specific screen with wildcard action
 		if actionPerm, ok := screenPerms["*"]; ok && actionPerm {
 			return true
 		}

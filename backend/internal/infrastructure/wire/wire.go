@@ -30,6 +30,7 @@ import (
 	orgsdb "github.com/nova/backend/internal/adapters/db/organizations"
 	partsdb "github.com/nova/backend/internal/adapters/db/parts"
 	queriesdb "github.com/nova/backend/internal/adapters/db/queries"
+	rolesdb "github.com/nova/backend/internal/adapters/db/roles"
 	stocksdb "github.com/nova/backend/internal/adapters/db/stocks"
 	storesdb "github.com/nova/backend/internal/adapters/db/stores"
 	structuredb "github.com/nova/backend/internal/adapters/db/structure"
@@ -67,6 +68,9 @@ type Container struct {
 	ScreenHandler    *screensapi.ScreenHandler
 	QueriesHandler   *queriesapi.QueriesHandler
 	GridHandler      *gridapi.GridHandler
+
+	// Repositories (needed for middleware wiring)
+	RoleRepository *rolesdb.PgRoleRepository
 }
 
 // NewContainer wires all dependencies
@@ -88,6 +92,7 @@ func NewContainer(pool *pgxpool.Pool, cfg *config.Config) *Container {
 	queryRepo := queriesdb.NewPgQueryRepository(pool)
 	gridRepo := griddb.NewPgGridRepository(pool)
 	fieldRepo := fieldsdb.NewPgFieldRepository(pool)
+	roleRepo := rolesdb.NewPgRoleRepository(pool)
 
 	// Domain services
 	authService := auth.NewAuthService(authUserRepo, authSessionRepo, cfg.JWT)
@@ -118,6 +123,7 @@ func NewContainer(pool *pgxpool.Pool, cfg *config.Config) *Container {
 		ScreenHandler:    screensapi.NewScreenHandler(),
 		QueriesHandler:   queriesapi.NewQueriesHandler(queryService),
 		GridHandler:      gridapi.NewGridHandler(gridService),
+		RoleRepository:   roleRepo,
 	}
 }
 
