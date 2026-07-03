@@ -8,4 +8,18 @@ export const FORM_BUILDER_ROUTES: Routes = [
         (m) => m.FormRuntimeContainerComponent,
       ),
   },
+  {
+    path: 'designer/:formKey',
+    loadComponent: () =>
+      import('./designer/form-designer.component').then(
+        (m) => m.FormDesignerComponent,
+      ),
+  },
+  {
+    path: 'designer/:formKey/:layoutName',
+    loadComponent: () =>
+      import('./designer/form-designer.component').then(
+        (m) => m.FormDesignerComponent,
+      ),
+  },
 ];
