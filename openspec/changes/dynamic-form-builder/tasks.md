@@ -73,11 +73,11 @@ Chain strategy: pending
 
 ## PR3: Backend Audit
 
-- [ ] 3.1 Create migration `20260219000002_form_audit.up.sql`: `eamform_audit_log` table + immutability triggers (no UPDATE, no DELETE).
-- [ ] 3.2 Add `AuditLogRepository` interface to `domain/formbuilder/ports.go`.
-- [ ] 3.3 Wire audit writes into all service mutations (form create/archive, layout create/archive, version publish/revert, assignment assign/revoke).
-- [ ] 3.4 Add GET /forms/:formKey/audit handler with pagination + filters (action, entity_type, date range).
-- [ ] 3.5 Tests: immutability triggers (direct SQL UPDATE/DELETE assertions), audit retrieval with filters, actor attribution.
+- [x] 3.1 Create migration `20260219000002_form_audit.up.sql`: `eamform_audit_log` table + immutability triggers (no UPDATE, no DELETE).
+- [x] 3.2 Add `AuditLogRepository` interface to `domain/formbuilder/ports.go`.
+- [x] 3.3 Wire audit writes into all service mutations (form create/archive, layout create/archive, version publish/revert, assignment assign/revoke).
+- [x] 3.4 Add GET /forms/:formKey/audit handler with pagination + filters (action, entity_type, date range).
+- [x] 3.5 Tests: immutability triggers (direct SQL UPDATE/DELETE assertions), audit retrieval with filters, actor attribution.
 
 **Dependencies**: PR2. **LOC**: ~200.
 
