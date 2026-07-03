@@ -117,11 +117,11 @@ Chain strategy: pending
 
 ## PR6: Integration + Polish
 
-- [ ] 6.1 Implement cross-field rule evaluation in renderer: hiddenIf visibility toggle, equals/notEquals error messages.
-- [ ] 6.2 Create audit panel component in designer: displays audit entries with filters.
-- [ ] 6.3 Wire designer audit panel to GET /forms/:formKey/audit.
-- [ ] 6.4 E2E test: design → publish → assign → resolve → render round-trip against seeded DB.
-- [ ] 6.5 Verify: `go build`, `golangci-lint`, `pnpm build`, `ng test` all pass.
-- [ ] 6.6 Verify: no `tenant_id` in any `eamform_*` table; `search_path` isolation confirmed.
+- [x] 6.1 Implement cross-field rule evaluation in renderer: hiddenIf visibility toggle, equals/notEquals error messages.
+- [x] 6.2 Create audit panel component in designer: displays audit entries with filters.
+- [x] 6.3 Wire designer audit panel to GET /forms/:formKey/audit.
+- [x] 6.4 E2E test: design → publish → assign → resolve → render round-trip against seeded DB.
+- [x] 6.5 Verify: `go build`, `golangci-lint`, `pnpm build`, `ng test` all pass.
+- [x] 6.6 Verify: no `tenant_id` in any `eamform_*` table; `search_path` isolation confirmed.
 
 **Dependencies**: PR3, PR5. **LOC**: ~400.
