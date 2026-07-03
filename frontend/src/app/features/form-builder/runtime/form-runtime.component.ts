@@ -1,6 +1,8 @@
 import {
   Component,
   input,
+  output,
+  OutputEmitterRef,
   OnInit,
   DestroyRef,
   inject,
@@ -27,13 +29,24 @@ import { evaluateCrossFieldRules } from './cross-field-validator';
   imports: [CommonModule, ReactiveFormsModule, FormSectionComponent],
   template: `
     @if (layout(); as layoutDef) {
-      <form [formGroup]="form" class="form-runtime">
+      <form [formGroup]="form" class="form-runtime" (ngSubmit)="onSubmit()">
         @for (section of sortedSections(); track section.name) {
           <app-form-section
             [section]="section"
             [group]="form"
             [hiddenFields]="hiddenFields()"
           />
+        }
+        @if (showActions()) {
+          <div class="flex gap-3 mt-6 pt-4 border-t border-gray-200">
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    [disabled]="form.invalid">
+              {{ submitLabel() }}
+            </button>
+            <button type="button" (click)="onCancel()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+              Cancel
+            </button>
+          </div>
         }
       </form>
     } @else {
@@ -58,6 +71,12 @@ export class FormRuntimeComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   layout = input<LayoutDefinition | null>(null);
+  initialValues = input<Record<string, any>>({});
+  submitLabel = input<string>('Submit');
+  showActions = input<boolean>(true);
+
+  readonly formSubmit = output<Record<string, any>>();
+  readonly formCancel = output<void>();
 
   form!: FormGroup;
 
@@ -74,17 +93,33 @@ export class FormRuntimeComponent implements OnInit {
     this.setupCrossFieldRules();
   }
 
+  onSubmit(): void {
+    if (this.form.valid) {
+      this.formSubmit.emit(this.form.value);
+    } else {
+      this.form.markAllAsTouched();
+    }
+  }
+
+  onCancel(): void {
+    this.formCancel.emit();
+  }
+
   private buildForm(): FormGroup {
     const l = this.layout();
     if (!l) return this.fb.group({});
 
     const controls: Record<string, FormControl> = {};
+    const initVals = this.initialValues();
 
     for (const section of l.sections) {
       for (const field of section.fields) {
         const validators = this.translateValidators(field.validators || []);
+        const initialValue = initVals[field.name] !== undefined
+          ? initVals[field.name]
+          : this.defaultValue(field);
         const control = new FormControl(
-          { value: this.defaultValue(field), disabled: field.ui.readOnly ?? false },
+          { value: initialValue, disabled: field.ui.readOnly ?? false },
           validators,
         );
         controls[field.name] = control;
