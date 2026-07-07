@@ -1,5 +1,5 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { Observable, tap, map } from 'rxjs';
 import { ApiService } from '@core/services/api.service';
 import { LayoutDefinition } from '../models/layout-definition.model';
 
@@ -14,14 +14,20 @@ export class FormRuntimeService {
   /**
    * GET /api/formbuilder/forms/:formKey
    * Returns the resolved layout definition for the current user's role.
+   * Backend returns: { success: true, data: { formKey, layoutName, version, definition } }
+   * We extract the definition (LayoutDefinition) from the response.
    */
   resolveForm(formKey: string): Observable<LayoutDefinition> {
     return this.api
-      .getRaw<LayoutDefinition>(`/formbuilder/forms/${formKey}`)
+      .getRaw<{
+        success: boolean;
+        data: { definition: LayoutDefinition };
+      }>(`/formbuilder/forms/${formKey}`)
       .pipe(
-        tap((layout) => {
+        map((response) => response.data.definition),
+        tap(() => {
           // Layout is ready for the renderer
-        }),
+        })
       );
   }
 }

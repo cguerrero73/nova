@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { UserService } from '../../services/user.service';
-import { User } from '../../models/user.model';
+import { User, CreateUserDto, UpdateUserDto } from '../../models/user.model';
 import { FormRuntimeComponent } from '../../../form-builder/runtime/form-runtime.component';
 import { FormRuntimeService } from '../../../form-builder/services/runtime.service';
 import { LayoutDefinition } from '../../../form-builder/models/layout-definition.model';
@@ -17,7 +17,7 @@ export class UserDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly formRuntimeService = inject(FormRuntimeService);
-  
+
   readonly user = signal<User | null>(null);
   readonly isNewMode = signal<boolean>(false);
   readonly isLoading = signal<boolean>(false);
@@ -27,16 +27,14 @@ export class UserDetailComponent implements OnInit {
   formInitialValues = computed<Record<string, any>>(() => {
     const u = this.user();
     if (!u) return {};
-    return {
-      name: u.name,
-      email: u.email,
-      status: u.status,
-    };
+    // Spread all user properties so any form field matching a User key is auto-populated.
+    // Extra form fields without matching user keys simply remain empty (expected for new users).
+    return { ...u };
   });
 
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
-    
+
     if (id === 'new') {
       this.isNewMode.set(true);
       this.user.set({
@@ -45,7 +43,7 @@ export class UserDetailComponent implements OnInit {
         email: '',
         status: 'active',
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
     } else if (id) {
       this.isNewMode.set(false);
@@ -74,23 +72,26 @@ export class UserDetailComponent implements OnInit {
     this.isLoading.set(true);
 
     try {
+      // Build a partial DTO from form data, picking only fields that belong to the User model.
+      // This allows the layout to evolve (add/remove fields) without breaking the submit handler —
+      // any form field name that matches a User key is forwarded; unknown fields are ignored.
+      const userKeys = ['name', 'email', 'status'] as const;
+      const dto: Record<string, any> = {};
+      for (const key of userKeys) {
+        if (key in data) {
+          dto[key] = data[key];
+        }
+      }
+
       if (this.isNewMode()) {
-        const newUser = await this.userService.createUser({
-          name: data['name'],
-          email: data['email'],
-          status: data['status'],
-        });
+        const newUser = await this.userService.createUser(dto as CreateUserDto);
         if (newUser) {
           this.router.navigate(['/users']);
         }
       } else {
         const user = this.user();
         if (!user) return;
-        const updatedUser = await this.userService.updateUser(user.id, {
-          name: data['name'],
-          email: data['email'],
-          status: data['status'],
-        });
+        const updatedUser = await this.userService.updateUser(user.id, dto as UpdateUserDto);
         if (updatedUser) {
           this.user.set(updatedUser);
           this.router.navigate(['/users']);
