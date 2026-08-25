@@ -411,10 +411,11 @@ export class UserListComponent implements OnInit {
     if (selectedQueryId) {
       this.queryService.executeQuery(selectedQueryId, page, 20).subscribe({
         next: (response) => {
+          const rows = (response.data as Record<string, unknown>[]).map((row) => this.mapRowToUser(row));
           if (page === 1) {
-            this.userService.users.set(response.data as User[]);
+            this.userService.users.set(rows);
           } else {
-            this.userService.users.update((current) => [...current, ...(response.data as User[])]);
+            this.userService.users.update((current) => [...current, ...rows]);
           }
           this.uiStore.setLoading(false);
         },
@@ -434,10 +435,11 @@ export class UserListComponent implements OnInit {
         20
       ).subscribe({
         next: (response) => {
+          const rows = (response.data as Record<string, unknown>[]).map((row) => this.mapRowToUser(row));
           if (page === 1) {
-            this.userService.users.set(response.data as User[]);
+            this.userService.users.set(rows);
           } else {
-            this.userService.users.update((current) => [...current, ...(response.data as User[])]);
+            this.userService.users.update((current) => [...current, ...rows]);
           }
           this.uiStore.setLoading(false);
         },
@@ -519,12 +521,8 @@ export class UserListComponent implements OnInit {
   }
 
   onUserSelect(user: User) {
-    // Toggle selection: if already selected, deselect; otherwise select
-    if (this.selected()?.id === user.id) {
-      this.selected.set(null);
-    } else {
-      this.selected.set(user);
-    }
+    // Select the clicked row (deselect is handled by the dedicated button)
+    this.selected.set(user);
   }
 
   onPageChange(page: number) {
@@ -712,8 +710,10 @@ export class UserListComponent implements OnInit {
   }
 
   onRowDoubleClick(user: User) {
-    // Abrir el drawer de detalle con doble click
-    this.detailEntity.set(this.mapRowToUser(user as unknown as Record<string, unknown>));
+    // Abrir el drawer de detalle con doble click y marcar la fila seleccionada
+    const mapped = this.mapRowToUser(user as unknown as Record<string, unknown>);
+    this.selected.set(mapped);
+    this.detailEntity.set(mapped);
     this.showDetail.set(true);
     this.hasUnsavedChanges.set(false);
   }
