@@ -65,4 +65,7 @@ logs/
 # Local Pi runtime state
 .atl/
 .pi/
+.pi-subagents/
 backend/.pi-lens/
+backend/tmp/
+gentleman.dots
