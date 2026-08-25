@@ -44,7 +44,6 @@ func (s *UserService) Create(ctx context.Context, tenantID string, req *CreateUs
 	}
 
 	user := &User{
-		ID:         uuid.New().String(),
 		Code:       generateCode(),
 		Name:       req.Name,
 		Email:      req.Email,

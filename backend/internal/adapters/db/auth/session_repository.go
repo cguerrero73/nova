@@ -31,13 +31,13 @@ func NewPgSessionRepository(pool *pgxpool.Pool) *PgSessionRepository {
 
 func (r *PgSessionRepository) Create(ctx context.Context, session *auth.Session) error {
 	query := `
-		INSERT INTO eamsessions (ses_user_code, ses_refresh_token, 
+		INSERT INTO eamsessions (ses_user_code, ses_active_role, ses_refresh_token, 
 		                          ses_expires_at, ses_ip_address, ses_user_agent, ses_created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)`
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
 	return infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
 		_, err := tx.Exec(ctx, query,
-			session.UserCode, session.RefreshToken,
+			session.UserCode, nilOnEmpty(session.ActiveRole), session.RefreshToken,
 			session.ExpiresAt, nilOnEmpty(session.IPAddress),
 			nilOnEmpty(session.UserAgent), session.CreatedAt,
 		)
@@ -48,7 +48,7 @@ func (r *PgSessionRepository) Create(ctx context.Context, session *auth.Session)
 func (r *PgSessionRepository) FindByRefreshToken(ctx context.Context, token string) (*auth.Session, error) {
 	var session *auth.Session
 	query := `
-		SELECT ses_id, ses_user_code, ses_refresh_token, ses_expires_at, 
+		SELECT ses_id, ses_user_code, COALESCE(ses_active_role, '') as ses_active_role, ses_refresh_token, ses_expires_at, 
 		       COALESCE(ses_ip_address, '') as ses_ip_address, 
 		       COALESCE(ses_user_agent, '') as ses_user_agent, 
 		       ses_created_at, ses_revoked_at
@@ -57,7 +57,7 @@ func (r *PgSessionRepository) FindByRefreshToken(ctx context.Context, token stri
 	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
 		var s auth.Session
 		err := tx.QueryRow(ctx, query, token).Scan(
-			&s.ID, &s.UserCode, &s.RefreshToken,
+			&s.ID, &s.UserCode, &s.ActiveRole, &s.RefreshToken,
 			&s.ExpiresAt, &s.IPAddress, &s.UserAgent,
 			&s.CreatedAt, &s.RevokedAt,
 		)

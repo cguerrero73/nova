@@ -16,13 +16,15 @@ import (
 type AuthService struct {
 	userRepo    UserRepository
 	sessionRepo SessionRepository
+	roleRepo    RoleRepository
 	jwtConfig   config.JWTConfig
 }
 
-func NewAuthService(userRepo UserRepository, sessionRepo SessionRepository, jwtConfig config.JWTConfig) *AuthService {
+func NewAuthService(userRepo UserRepository, sessionRepo SessionRepository, roleRepo RoleRepository, jwtConfig config.JWTConfig) *AuthService {
 	return &AuthService{
 		userRepo:    userRepo,
 		sessionRepo: sessionRepo,
+		roleRepo:    roleRepo,
 		jwtConfig:   jwtConfig,
 	}
 }
@@ -115,8 +117,16 @@ func (s *AuthService) generateAuthResponse(ctx context.Context, user *User) (*Au
 	refreshToken := generateRefreshToken()
 	expiresAt := time.Now().Add(7 * 24 * time.Hour) // 7 days
 
+	// Get active role for the user
+	activeRole, err := s.roleRepo.FindActiveRoleForUser(ctx, user.Code)
+	if err != nil {
+		// User might not have a role assigned yet; continue without active role
+		activeRole = ""
+	}
+
 	session := &Session{
 		UserCode:     user.Code,
+		ActiveRole:   activeRole,
 		RefreshToken: refreshToken,
 		ExpiresAt:    expiresAt,
 		CreatedAt:    time.Now(),

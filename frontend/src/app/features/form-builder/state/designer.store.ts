@@ -56,7 +56,7 @@ export class FormDesignerStore {
 
   readonly sortedSections = computed<Section[]>(() => {
     const def = this._definition();
-    if (!def) return [];
+    if (!def || !def.sections) return [];
     return [...def.sections].sort((a, b) => a.order - b.order);
   });
 
@@ -92,7 +92,7 @@ export class FormDesignerStore {
 
     this.designerService.listLayouts(formKey).subscribe({
       next: (layouts) => {
-        this._layouts.set(layouts);
+        this._layouts.set(layouts ?? []);
         this._loading.set(false);
       },
       error: (err) => {
@@ -102,7 +102,7 @@ export class FormDesignerStore {
     });
 
     this.assignmentService.listAssignments(formKey).subscribe({
-      next: (assignments) => this._assignments.set(assignments),
+      next: (assignments) => this._assignments.set(assignments ?? []),
       error: () => {},
     });
   }
@@ -268,7 +268,7 @@ export class FormDesignerStore {
     this.assignmentService
       .listAssignments(this._formKey())
       .subscribe({
-        next: (a) => this._assignments.set(a),
+        next: (a) => this._assignments.set(a ?? []),
         error: () => {},
       });
   }

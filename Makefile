@@ -7,6 +7,7 @@ help:
 	@echo "  make dev         - Start all services (frontend + backend)"
 	@echo "  make devFrontend - Start frontend only"
 	@echo "  make devBackend  - Start backend only"
+	@echo "  make devBackendWatch  - Start devBackendWatch only"	
 	@echo "  make build       - Build all projects"
 	@echo "  make test        - Run all tests"
 	@echo "  make lint        - Lint all projects"
@@ -27,6 +28,12 @@ devFrontend:
 
 devBackend:
 	cd backend && make dev
+
+devBackend:
+	cd backend && make dev
+
+devBackendWatch:
+	cd backend && make dev-watch
 
 build:
 	cd backend && make build

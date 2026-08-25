@@ -106,7 +106,7 @@ func NewContainer(pool *pgxpool.Pool, cfg *config.Config) *Container {
 	fbAuditRepo := formbuilderdb.NewPgAuditLogRepository(pool)
 
 	// Domain services
-	authService := auth.NewAuthService(authUserRepo, authSessionRepo, cfg.JWT)
+	authService := auth.NewAuthService(authUserRepo, authSessionRepo, roleRepo, cfg.JWT)
 	userService := users.NewUserService(userRepo)
 	orgService := organizations.NewOrganizationService(orgRepo)
 	objectService := objects.NewObjectService(objectRepo)

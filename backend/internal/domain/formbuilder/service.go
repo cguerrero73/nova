@@ -182,6 +182,8 @@ func (s *FormService) ListLayouts(ctx context.Context, formKey string) ([]*Layou
 }
 
 // GetDraft returns the current draft version of a layout.
+// If no draft exists, it falls back to the published version so the designer
+// opens with the live layout as the starting point.
 func (s *FormService) GetDraft(ctx context.Context, formKey, layoutName string) (*LayoutVersion, error) {
 	form, layout, err := s.resolveFormLayout(ctx, formKey, layoutName)
 	if err != nil {
@@ -189,11 +191,15 @@ func (s *FormService) GetDraft(ctx context.Context, formKey, layoutName string) 
 	}
 	_ = form
 
-	if layout.DraftVersionID == nil {
-		return nil, ErrLayoutNotFound
+	if layout.DraftVersionID != nil {
+		return s.versions.FindByID(ctx, *layout.DraftVersionID)
 	}
 
-	return s.versions.FindByID(ctx, *layout.DraftVersionID)
+	if layout.PublishedVersionID != nil {
+		return s.versions.FindByID(ctx, *layout.PublishedVersionID)
+	}
+
+	return nil, ErrLayoutNotFound
 }
 
 // ListAssignments returns all assignments for a form.

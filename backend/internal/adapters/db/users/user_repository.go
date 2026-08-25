@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -151,19 +152,25 @@ func (r *PgUserRepository) FindAll(ctx context.Context, tenantID string, limit, 
 
 func (r *PgUserRepository) Create(ctx context.Context, user *users.User) error {
 	query := `
-		INSERT INTO eamusers (usr_id, usr_code, usr_name, usr_email, usr_password, 
+		INSERT INTO eamusers (usr_code, usr_name, usr_email, usr_password, 
 		                      usr_phone, usr_status, usr_default_org, usr_notused,
 		                      usr_tenant_id, usr_created_at, usr_updated_at, 
 		                      usr_created_by, usr_updated_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		RETURNING usr_id`
 
 	return infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
-		_, err := tx.Exec(ctx, query,
-			user.ID, user.Code, user.Name, user.Email, user.Password, user.Phone,
+		var id int64
+		err := tx.QueryRow(ctx, query,
+			user.Code, user.Name, user.Email, user.Password, user.Phone,
 			user.Status, user.DefaultOrg, user.NotUsed, user.TenantID,
 			user.CreatedAt, user.UpdatedAt, user.CreatedBy, user.UpdatedBy,
-		)
-		return err
+		).Scan(&id)
+		if err != nil {
+			return err
+		}
+		user.ID = strconv.FormatInt(id, 10)
+		return nil
 	})
 }
 

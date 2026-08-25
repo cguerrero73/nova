@@ -12,6 +12,7 @@ import {
 /**
  * HTTP client for the form-builder designer API.
  * Covers CRUD forms/layouts/drafts/publish/versions.
+ * Backend wraps responses as { success: boolean, data: T }, so we extract data.
  */
 @Injectable({ providedIn: 'root' })
 export class FormDesignerService {
@@ -20,44 +21,48 @@ export class FormDesignerService {
   // --- Forms ---
 
   listForms(): Observable<FormDefinition[]> {
-    return this.api.getRaw<FormDefinition[]>('/formbuilder/forms');
+    return this.api
+      .get<FormDefinition[]>('/formbuilder/forms')
+      .pipe(map((response) => response.data!));
   }
 
   getForm(formKey: string): Observable<FormDefinition> {
-    return this.api.getRaw<FormDefinition>(`/formbuilder/forms/${formKey}`);
+    return this.api
+      .get<FormDefinition>(`/formbuilder/forms/${formKey}`)
+      .pipe(map((response) => response.data!));
   }
 
   // --- Layouts ---
 
   listLayouts(formKey: string): Observable<FormLayout[]> {
-    return this.api.getRaw<FormLayout[]>(
-      `/formbuilder/forms/${formKey}/layouts`,
-    );
+    return this.api
+      .get<FormLayout[]>(`/formbuilder/forms/${formKey}/layouts`)
+      .pipe(map((response) => response.data!));
   }
 
   createLayout(
     formKey: string,
     body: { name: string; displayName: string; description?: string },
   ): Observable<FormLayout> {
-    return this.api.postRaw<FormLayout>(
-      `/formbuilder/forms/${formKey}/layouts`,
-      body,
-    );
+    return this.api
+      .post<FormLayout>(`/formbuilder/forms/${formKey}/layouts`, body)
+      .pipe(map((response) => response.data!));
   }
 
   archiveLayout(formKey: string, layoutName: string): Observable<null> {
-    return this.api.postRaw<null>(
-      `/formbuilder/forms/${formKey}/layouts/${layoutName}/archive`,
-      {},
-    );
+    return this.api
+      .post<null>(`/formbuilder/forms/${formKey}/layouts/${layoutName}/archive`, {})
+      .pipe(map((response) => response.data!));
   }
 
   // --- Draft ---
 
   getDraft(formKey: string, layoutName: string): Observable<LayoutDefinition> {
-    return this.api.getRaw<LayoutDefinition>(
-      `/formbuilder/forms/${formKey}/layouts/${layoutName}/draft`,
-    );
+    return this.api
+      .get<LayoutVersion>(
+        `/formbuilder/forms/${formKey}/layouts/${layoutName}/draft`,
+      )
+      .pipe(map((response) => response.data!.flv_definition as LayoutDefinition));
   }
 
   saveDraft(
@@ -65,23 +70,27 @@ export class FormDesignerService {
     layoutName: string,
     definition: LayoutDefinition,
   ): Observable<LayoutDefinition> {
-    return this.api.putRaw<LayoutDefinition>(
-      `/formbuilder/forms/${formKey}/layouts/${layoutName}/draft`,
-      definition,
-    );
+    return this.api
+      .putRaw<{ success: boolean; data: LayoutVersion }>(
+        `/formbuilder/forms/${formKey}/layouts/${layoutName}/draft`,
+        definition,
+      )
+      .pipe(map((response) => response.data!.flv_definition as LayoutDefinition));
   }
 
-  // --- Publish ---
+  // --- Publish & revert ---
 
   publishLayout(
     formKey: string,
     layoutName: string,
     description: string,
   ): Observable<LayoutVersion> {
-    return this.api.postRaw<LayoutVersion>(
-      `/formbuilder/forms/${formKey}/layouts/${layoutName}/publish`,
-      { description },
-    );
+    return this.api
+      .post<LayoutVersion>(
+        `/formbuilder/forms/${formKey}/layouts/${layoutName}/publish`,
+        { description },
+      )
+      .pipe(map((response) => response.data!));
   }
 
   revertLayout(
@@ -89,10 +98,12 @@ export class FormDesignerService {
     layoutName: string,
     versionNumber: number,
   ): Observable<LayoutDefinition> {
-    return this.api.postRaw<LayoutDefinition>(
-      `/formbuilder/forms/${formKey}/layouts/${layoutName}/revert`,
-      { versionNumber },
-    );
+    return this.api
+      .post<LayoutVersion>(
+        `/formbuilder/forms/${formKey}/layouts/${layoutName}/revert`,
+        { versionNumber },
+      )
+      .pipe(map((response) => response.data!.flv_definition as LayoutDefinition));
   }
 
   // --- Versions ---
@@ -101,9 +112,11 @@ export class FormDesignerService {
     formKey: string,
     layoutName: string,
   ): Observable<LayoutVersion[]> {
-    return this.api.getRaw<LayoutVersion[]>(
-      `/formbuilder/forms/${formKey}/layouts/${layoutName}/versions`,
-    );
+    return this.api
+      .get<LayoutVersion[]>(
+        `/formbuilder/forms/${formKey}/layouts/${layoutName}/versions`,
+      )
+      .pipe(map((response) => response.data!));
   }
 
   getVersion(
@@ -111,9 +124,11 @@ export class FormDesignerService {
     layoutName: string,
     versionNumber: number,
   ): Observable<LayoutVersion> {
-    return this.api.getRaw<LayoutVersion>(
-      `/formbuilder/forms/${formKey}/layouts/${layoutName}/versions/${versionNumber}`,
-    );
+    return this.api
+      .get<LayoutVersion>(
+        `/formbuilder/forms/${formKey}/layouts/${layoutName}/versions/${versionNumber}`,
+      )
+      .pipe(map((response) => response.data!));
   }
 
   // --- Audit ---
@@ -129,9 +144,7 @@ export class FormDesignerService {
     if (params?.entityType) queryParts.push(`entity_type=${encodeURIComponent(params.entityType)}`);
     const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
     return this.api
-      .getRaw<{ success: boolean; data: AuditListResponse }>(
-        `/formbuilder/forms/${formKey}/audit${qs}`,
-      )
-      .pipe(map((res) => res.data));
+      .get<AuditListResponse>(`/formbuilder/forms/${formKey}/audit${qs}`)
+      .pipe(map((response) => response.data!));
   }
 }

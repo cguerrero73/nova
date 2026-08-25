@@ -33,7 +33,7 @@ func (r *PgRoleRepository) FindByCode(ctx context.Context, code string) (*roles.
 		var systemFlag, notUsedFlag string
 		err := tx.QueryRow(ctx, `
 			SELECT rol_id, rol_code, rol_desc, COALESCE(rol_system, '-'), COALESCE(rol_notused, '-'),
-			       COALESCE(rol_created_at, now()), rol_updated_at
+			       COALESCE(rol_created_at, now()), COALESCE(rol_updated_at, now())
 			FROM eamroles
 			WHERE rol_code = $1
 		`, code).Scan(

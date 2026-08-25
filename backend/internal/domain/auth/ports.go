@@ -18,3 +18,8 @@ type SessionRepository interface {
 	Revoke(ctx context.Context, userCode string) error
 	RevokeAll(ctx context.Context, userCode string) error
 }
+
+// RoleRepository defines role operations needed by auth
+type RoleRepository interface {
+	FindActiveRoleForUser(ctx context.Context, userCode string) (string, error)
+}

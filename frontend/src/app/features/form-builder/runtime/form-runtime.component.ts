@@ -4,6 +4,8 @@ import {
   output,
   OutputEmitterRef,
   OnInit,
+  OnChanges,
+  SimpleChanges,
   DestroyRef,
   inject,
   signal,
@@ -66,7 +68,7 @@ import { evaluateCrossFieldRules } from './cross-field-validator';
     }
   `],
 })
-export class FormRuntimeComponent implements OnInit {
+export class FormRuntimeComponent implements OnInit, OnChanges {
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -77,6 +79,7 @@ export class FormRuntimeComponent implements OnInit {
 
   readonly formSubmit = output<Record<string, any>>();
   readonly formCancel = output<void>();
+  readonly formValueChange = output<Record<string, any>>();
 
   form!: FormGroup;
 
@@ -90,7 +93,26 @@ export class FormRuntimeComponent implements OnInit {
 
   ngOnInit(): void {
     this.form = this.buildForm();
+    this.setupFormChangeTracking();
     this.setupCrossFieldRules();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['initialValues'] && this.form) {
+      this.patchFormValues(this.initialValues());
+    }
+  }
+
+  private patchFormValues(values: Record<string, any>): void {
+    const patch: Record<string, any> = {};
+    for (const section of this.sortedSections()) {
+      for (const field of section.fields) {
+        if (field.name in values) {
+          patch[field.name] = values[field.name];
+        }
+      }
+    }
+    this.form.patchValue(patch, { emitEvent: false });
   }
 
   onSubmit(): void {
@@ -168,6 +190,14 @@ export class FormRuntimeComponent implements OnInit {
       default:
         return '';
     }
+  }
+
+  private setupFormChangeTracking(): void {
+    const sub = this.form.valueChanges.subscribe((values) => {
+      this.formValueChange.emit(values);
+    });
+
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
   }
 
   private setupCrossFieldRules(): void {

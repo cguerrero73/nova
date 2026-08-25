@@ -57,7 +57,10 @@ func (m *AuthMiddleware) Authenticate() fiber.Handler {
 
 		// Store claims in context
 		c.Locals("user", claims)
-		c.Locals("tenant", claims.Tenant)
+		// NOTE: we do NOT overwrite c.Locals("tenant") here.
+		// The tenant is extracted from the request (query/header/body) by
+		// TenantMiddleware. Overwriting it with claims.Tenant (often empty)
+		// breaks endpoints that check GetTenant().
 
 		return c.Next()
 	}

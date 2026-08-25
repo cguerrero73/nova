@@ -16,6 +16,9 @@ help: ## Show this help
 dev: ## Run development server
 	@DB_HOST=$(DB_HOST) DB_PORT=$(DB_PORT) DB_USER=$(DB_USER) DB_PASSWORD=$(DB_PASSWORD) DB_DATABASE=$(DB_DATABASE) DB_SCHEMA=$(DB_SCHEMA) go run $(MAIN_PATH)/main.go
 
+dev-watch: ## Run development server with hot reload (requires air)
+	@DB_HOST=$(DB_HOST) DB_PORT=$(DB_PORT) DB_USER=$(DB_USER) DB_PASSWORD=$(DB_PASSWORD) DB_DATABASE=$(DB_DATABASE) DB_SCHEMA=$(DB_SCHEMA) air
+
 build: ## Build binary
 	go build -o $(BINARY_NAME) $(MAIN_PATH)/main.go
 

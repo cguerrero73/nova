@@ -2,6 +2,7 @@ package formbuilder
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 )
 
@@ -79,8 +80,8 @@ func (s *FormService) Resolve(ctx context.Context, formKey string, roleName stri
 
 // ResolveResult is the output of the Resolve algorithm.
 type ResolveResult struct {
-	FormKey    string `json:"formKey"`
-	LayoutName string `json:"layoutName"`
-	Version    int    `json:"version"`
-	Definition []byte `json:"definition"`
+	FormKey    string          `json:"formKey"`
+	LayoutName string          `json:"layoutName"`
+	Version    int             `json:"version"`
+	Definition json.RawMessage `json:"definition"`
 }
