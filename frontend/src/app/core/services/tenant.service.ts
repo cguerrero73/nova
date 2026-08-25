@@ -1,11 +1,15 @@
 import { Injectable, signal } from '@angular/core';
 
+const TENANT_STORAGE_KEY = 'nova_tenant';
+
 /**
- * TenantService extracts and stores the tenant code from the application URL.
+ * TenantService extracts and stores the tenant code from the application URL
+ * or localStorage fallback.
  *
  * The tenant is obtained from one of these sources (in order):
  * 1. Query parameter: ?tenant=acme
  * 2. Subdomain (e.g. acme.localhost)
+ * 3. localStorage (set on a previous visit)
  *
  * Once set, it's provided to the HTTP interceptor which adds it as
  * X-Tenant-Code header on every API request.
@@ -22,16 +26,24 @@ export class TenantService {
   }
 
   private initialize(): void {
-    const tenant = this.extractFromQueryParam() ?? this.extractFromSubdomain() ?? '';
+    const tenant = this.extractFromQueryParam()
+      ?? this.extractFromSubdomain()
+      ?? this.loadFromStorage()
+      ?? '';
 
     if (tenant) {
       this._tenant.set(tenant);
+      this.saveToStorage(tenant);
     }
   }
 
   private extractFromQueryParam(): string | null {
     const params = new URLSearchParams(window.location.search);
-    return params.get('tenant');
+    const tenant = params.get('tenant');
+    if (tenant) {
+      this.saveToStorage(tenant);
+    }
+    return tenant;
   }
 
   private extractFromSubdomain(): string | null {
@@ -60,5 +72,33 @@ export class TenantService {
   /** Returns true if a tenant is configured. */
   hasTenant(): boolean {
     return this._tenant() !== '';
+  }
+
+  /** Persist tenant to localStorage. */
+  private saveToStorage(tenant: string): void {
+    try {
+      localStorage.setItem(TENANT_STORAGE_KEY, tenant);
+    } catch {
+      // Ignore storage errors (e.g. private mode)
+    }
+  }
+
+  /** Read tenant from localStorage. */
+  private loadFromStorage(): string | null {
+    try {
+      return localStorage.getItem(TENANT_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Clear stored tenant (e.g. on logout). */
+  clearTenant(): void {
+    this._tenant.set('');
+    try {
+      localStorage.removeItem(TENANT_STORAGE_KEY);
+    } catch {
+      // Ignore storage errors
+    }
   }
 }

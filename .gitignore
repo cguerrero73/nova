@@ -15,6 +15,17 @@ frontend/test-results/
 frontend/blob-report/
 frontend/playwright/.cache/
 
+# Test coverage (Go + Angular)
+*.coverprofile
+coverage/
+*.lcov
+
+# pnpm artifacts
+.pnpm-store/
+
+# Go workspace
+vendor/
+
 # Go binaries (but NOT nova-* files - they are committed intentionally)
 *.exe
 *.dll
@@ -28,6 +39,10 @@ frontend/playwright/.cache/
 .env.local
 .env.*.local
 
+# Local-only config overrides
+config.local.yaml
+config.*.local.yaml
+
 # IDE
 .idea/
 .vscode/
@@ -37,6 +52,7 @@ frontend/playwright/.cache/
 # OS files
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Logs
 *.log
@@ -49,4 +65,7 @@ logs/
 # Local Pi runtime state
 .atl/
 .pi/
+.pi-subagents/
 backend/.pi-lens/
+backend/tmp/
+gentleman.dots

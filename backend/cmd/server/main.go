@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
+	formbuilderapi "github.com/nova/backend/internal/adapters/api/formbuilder"
 	"github.com/nova/backend/internal/config"
 	"github.com/nova/backend/internal/infrastructure/middleware"
 	"github.com/nova/backend/internal/infrastructure/wire"
@@ -62,6 +63,9 @@ func main() {
 	// Auth middleware
 	authMw := middleware.NewAuthMiddleware(cfg.JWT)
 
+	// Context loader middleware (loads active role + permissions after auth)
+	contextLoader := middleware.NewContextLoader(c.RoleRepository)
+
 	// Routes
 	api := app.Group("/api/v1")
 
@@ -73,8 +77,8 @@ func main() {
 
 	api.Get("/screens/:screenId", c.ScreenHandler.GetTranslations)
 
-	// Protected routes (auth required)
-	protected := api.Group("", authMw.Authenticate())
+	// Protected routes (auth required + context loaded)
+	protected := api.Group("", authMw.Authenticate(), contextLoader.LoadContext())
 
 	// Auth routes requiring auth
 	protected.Post("/logout", c.AuthHandler.Logout)
@@ -172,6 +176,9 @@ func main() {
 	syscodesGroup.Put("/:id", c.SyscodeHandler.Update)
 	syscodesGroup.Delete("/:id", c.SyscodeHandler.Delete)
 	syscodesGroup.Get("/type/:type", c.SyscodeHandler.GetByType)
+
+	// Form Builder
+	formbuilderapi.RegisterRoutes(protected, c.FormBuilderHandler)
 
 	// Graceful shutdown
 	shutdown := make(chan os.Signal, 1)

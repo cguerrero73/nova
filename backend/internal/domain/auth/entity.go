@@ -14,6 +14,7 @@ type User = users.User
 type Session struct {
 	ID           string     `json:"id"`
 	UserCode     string     `json:"userCode"`
+	ActiveRole   string     `json:"activeRole"`
 	RefreshToken string     `json:"refreshToken"`
 	ExpiresAt    time.Time  `json:"expiresAt"`
 	IPAddress    string     `json:"ipAddress"`

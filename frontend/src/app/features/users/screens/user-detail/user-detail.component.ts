@@ -1,29 +1,41 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { UserService } from '../../services/user.service';
-import { User } from '../../models/user.model';
+import { User, CreateUserDto, UpdateUserDto } from '../../models/user.model';
+import { FormRuntimeComponent } from '../../../form-builder/runtime/form-runtime.component';
+import { FormRuntimeService } from '../../../form-builder/services/runtime.service';
+import { LayoutDefinition } from '../../../form-builder/models/layout-definition.model';
 
 @Component({
   selector: 'app-user-detail',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormRuntimeComponent],
   templateUrl: './user-detail.component.html',
 })
 export class UserDetailComponent implements OnInit {
   readonly userService = inject(UserService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  
+  private readonly formRuntimeService = inject(FormRuntimeService);
+
   readonly user = signal<User | null>(null);
   readonly isNewMode = signal<boolean>(false);
   readonly isLoading = signal<boolean>(false);
+  readonly layout = signal<LayoutDefinition | null>(null);
+  readonly layoutLoading = signal<boolean>(true);
+
+  formInitialValues = computed<Record<string, any>>(() => {
+    const u = this.user();
+    if (!u) return {};
+    // Spread all user properties so any form field matching a User key is auto-populated.
+    // Extra form fields without matching user keys simply remain empty (expected for new users).
+    return { ...u };
+  });
 
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
-    
+
     if (id === 'new') {
-      // Modo creación: crear usuario vacío
       this.isNewMode.set(true);
       this.user.set({
         id: '',
@@ -31,39 +43,67 @@ export class UserDetailComponent implements OnInit {
         email: '',
         status: 'active',
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
     } else if (id) {
-      // Modo edición: cargar usuario existente
       this.isNewMode.set(false);
       const userData = await this.userService.loadUser(id);
       this.user.set(userData);
     }
+
+    this.loadLayout();
   }
 
-  async saveUser() {
-    const user = this.user();
-    if (!user) return;
-    
+  private loadLayout(): void {
+    this.layoutLoading.set(true);
+    this.formRuntimeService.resolveForm('user-form').subscribe({
+      next: (layout) => {
+        this.layout.set(layout);
+        this.layoutLoading.set(false);
+      },
+      error: () => {
+        this.layout.set(null);
+        this.layoutLoading.set(false);
+      },
+    });
+  }
+
+  async onFormSubmit(data: Record<string, any>) {
     this.isLoading.set(true);
-    
+
     try {
+      // Build a partial DTO from form data, picking only fields that belong to the User model.
+      // This allows the layout to evolve (add/remove fields) without breaking the submit handler —
+      // any form field name that matches a User key is forwarded; unknown fields are ignored.
+      const userKeys = ['name', 'email', 'status'] as const;
+      const dto: Record<string, any> = {};
+      for (const key of userKeys) {
+        if (key in data) {
+          dto[key] = data[key];
+        }
+      }
+
       if (this.isNewMode()) {
-        // Crear nuevo usuario
-        const newUser = await this.userService.createUser(user);
+        const newUser = await this.userService.createUser(dto as CreateUserDto);
         if (newUser) {
           this.router.navigate(['/users']);
         }
       } else {
-        // Actualizar usuario existente
-        const updatedUser = await this.userService.updateUser(user.id, user);
+        const user = this.user();
+        if (!user) return;
+        const updatedUser = await this.userService.updateUser(user.id, dto as UpdateUserDto);
         if (updatedUser) {
           this.user.set(updatedUser);
+          this.router.navigate(['/users']);
         }
       }
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  onFormCancel(): void {
+    this.router.navigate(['/users']);
   }
 
   async deleteUser() {
@@ -74,12 +114,5 @@ export class UserDetailComponent implements OnInit {
         this.router.navigate(['/users']);
       }
     }
-  }
-
-  onFieldChange(field: string, value: unknown) {
-    this.user.update(u => {
-      if (!u) return u;
-      return { ...u, [field]: value };
-    });
   }
 }

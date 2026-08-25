@@ -2,6 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, tap, catchError, of } from 'rxjs';
 import { ApiService } from './api.service';
+import { TenantService } from './tenant.service';
 import { LanguageDetector, SupportedLanguage, LANGUAGE_STORAGE_KEY } from './language-detector.service';
 
 export interface AuthUser {
@@ -40,6 +41,7 @@ export class AuthService {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
   private readonly languageDetector = inject(LanguageDetector);
+  private readonly tenantService = inject(TenantService);
 
   // Signals para estado reactivo
   private _user = signal<AuthUser | null>(this.loadUserFromStorage());
@@ -175,6 +177,7 @@ export class AuthService {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem('nova_token_expiry');
+    this.tenantService.clearTenant();
     
     this._user.set(null);
     this._isAuthenticated.set(false);

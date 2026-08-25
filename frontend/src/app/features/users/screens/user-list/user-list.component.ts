@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, effect } from '@angular/core';
 import { Router } from '@angular/router';
 import { createAngularTable, getCoreRowModel, ColumnDef } from '@tanstack/angular-table';
 import { UserService } from '../../services/user.service';
@@ -11,14 +11,14 @@ import { SavedQuery, GridQuery, GridColumn } from '@core/models/query.model';
 import { DataGridComponent, GridMeta } from '@shared/components/data-grid/data-grid.component';
 import { QueryBuilderComponent } from '@shared/components/query-builder/query-builder.component';
 import { ToolbarComponent } from '@shared/components/toolbar/toolbar.component';
+import { FormRuntimeComponent } from '../../../form-builder/runtime/form-runtime.component';
+import { FormRuntimeService } from '../../../form-builder/services/runtime.service';
+import { LayoutDefinition } from '../../../form-builder/models/layout-definition.model';
 import {
   EntityDetailComponent,
   EntityTab,
 } from '@shared/components/entity-detail/entity-detail.component';
-import {
-  EntityFormComponent,
-  FormField,
-} from '@shared/components/entity-form/entity-form.component';
+
 import {
   RelatedInfoComponent,
   RelatedSection,
@@ -34,8 +34,8 @@ type UserRow = User;
     QueryBuilderComponent,
     ToolbarComponent,
     EntityDetailComponent,
-    EntityFormComponent,
     RelatedInfoComponent,
+    FormRuntimeComponent,
   ],
   templateUrl: './user-list.component.html',
 })
@@ -45,6 +45,7 @@ export class UserListComponent implements OnInit {
   readonly translate = inject(TranslationService);
   readonly uiStore = inject(UiStore);
   readonly router = inject(Router);
+  readonly formRuntimeService = inject(FormRuntimeService);
   readonly GRID_IDS = GRID_IDS;
 
   // Traducciones
@@ -62,6 +63,18 @@ export class UserListComponent implements OnInit {
   detailEntity = signal<User | null>(null);
   detailLoading = signal<boolean>(false);
   detailSaving = signal<boolean>(false);
+
+  // Dynamic form layout for the detail drawer
+  layout = signal<LayoutDefinition | null>(null);
+  layoutLoading = signal<boolean>(false);
+  layoutError = signal<string | null>(null);
+  formValues = signal<Record<string, unknown>>({});
+  formInitialValues = signal<Record<string, unknown>>({});
+
+  private updateFormInitialValues(): void {
+    const entity = this.detailEntity();
+    this.formInitialValues.set(entity ? { ...entity } : {});
+  }
 
   // Track de cambios sin guardar en el drawer
   hasUnsavedChanges = signal<boolean>(false);
@@ -103,9 +116,6 @@ export class UserListComponent implements OnInit {
 
   // Tabs de información relacionada (se construyen con traducciones en ngOnInit)
   tabs: EntityTab[] = [];
-
-  // Campos del formulario de edición (se construyen con traducciones en ngOnInit)
-  formFields: FormField[] = [];
 
   // Información relacionada (mock)
   relatedSections: RelatedSection[] = [
@@ -165,6 +175,17 @@ export class UserListComponent implements OnInit {
   // Nombre del grid para esta pantalla
   readonly GRID_NAME = 'BMUSER';
 
+  constructor() {
+    // Load dynamic form layout when the detail drawer opens
+    effect(() => {
+      const entity = this.detailEntity();
+      if (this.showDetail() && entity) {
+        this.updateFormInitialValues();
+        this.loadLayout();
+      }
+    });
+  }
+
   ngOnInit() {
     console.log('[UserList] Starting unified flow for grid:', this.GRID_NAME);
 
@@ -180,7 +201,6 @@ export class UserListComponent implements OnInit {
         console.log('[UserList] Translations loaded:', translations);
         this.t = translations;
         this.buildTabs();
-        this.buildFormFields();
 
         // Continuar con el flujo: cargar config del grid
         this.loadGridConfig();
@@ -256,44 +276,6 @@ export class UserListComponent implements OnInit {
       { id: 'comments', label: this.t['tabs.comments'] || 'Comentarios' },
       { id: 'documents', label: this.t['tabs.documents'] || 'Documentos' },
       { id: 'audit', label: this.t['tabs.audit'] || 'Historial' },
-    ];
-  }
-
-  // Construir form fields con traducciones
-  private buildFormFields(): void {
-    this.formFields = [
-      { key: 'id', label: this.t['form.id.label'] || 'ID', type: 'text', readonly: true },
-      {
-        key: 'name',
-        label: this.t['form.name.label'] || 'Nombre',
-        type: 'text',
-        required: true,
-        placeholder: this.t['form.name.placeholder'] || 'Nombre completo',
-      },
-      {
-        key: 'email',
-        label: this.t['form.email.label'] || 'Email',
-        type: 'email',
-        required: true,
-        placeholder: this.t['form.email.placeholder'] || 'correo@ejemplo.com',
-      },
-      {
-        key: 'status',
-        label: this.t['form.status.label'] || 'Estado',
-        type: 'select',
-        required: true,
-        options: [
-          { value: 'active', label: this.t['status.active'] || 'Activo' },
-          { value: 'inactive', label: this.t['status.inactive'] || 'Inactivo' },
-          { value: 'suspended', label: this.t['status.suspended'] || 'Suspendido' },
-        ],
-      },
-      {
-        key: 'createdAt',
-        label: this.t['form.createdAt.label'] || 'Fecha Creación',
-        type: 'date',
-        readonly: true,
-      },
     ];
   }
 
@@ -583,10 +565,7 @@ export class UserListComponent implements OnInit {
   // Guardar desde toolbar (cuando hay cambios en el drawer)
   onSaveFromToolbar() {
     if (this.showDetail() && this.hasUnsavedChanges()) {
-      const entity = this.detailEntity();
-      if (entity) {
-        this.onDetailSave(entity);
-      }
+      this.onFormSubmit(this.formValues());
     }
   }
 
@@ -610,11 +589,13 @@ export class UserListComponent implements OnInit {
     const selected = this.selected();
     if (!selected) return;
 
+    const user = this.mapRowToUser(selected as unknown as Record<string, unknown>);
+
     // Crear una copia del usuario (nuevo ID, limpio el id actual)
     const duplicated: User = {
-      ...selected,
+      ...user,
       id: '', // ID vacío para crear nuevo
-      name: `${selected.name} (copia)`,
+      name: `${user.name} (copia)`,
     };
 
     // Abrir el drawer con el nuevo entity
@@ -637,7 +618,7 @@ export class UserListComponent implements OnInit {
       const prevUser = users[currentIndex - 1];
       if (this.showDetail()) {
         // Si el drawer está abierto, actualizar el entity del drawer
-        this.detailEntity.set(prevUser);
+        this.detailEntity.set(this.mapRowToUser(prevUser as unknown as Record<string, unknown>));
         this.hasUnsavedChanges.set(false);
       } else {
         // Si el drawer está cerrado, solo mover la selección
@@ -659,7 +640,7 @@ export class UserListComponent implements OnInit {
       const nextUser = users[currentIndex + 1];
       if (this.showDetail()) {
         // Si el drawer está abierto, actualizar el entity del drawer
-        this.detailEntity.set(nextUser);
+        this.detailEntity.set(this.mapRowToUser(nextUser as unknown as Record<string, unknown>));
         this.hasUnsavedChanges.set(false);
       } else {
         // Si el drawer está cerrado, solo mover la selección
@@ -668,11 +649,71 @@ export class UserListComponent implements OnInit {
     }
   }
 
+  // === Dynamic Form Layout ===
+
+  private loadLayout(): void {
+    this.layoutLoading.set(true);
+    this.layoutError.set(null);
+    this.formRuntimeService.resolveForm('user-form').subscribe({
+      next: (layout) => {
+        this.layout.set(layout);
+        this.layoutLoading.set(false);
+      },
+      error: (err) => {
+        this.layout.set(null);
+        this.layoutError.set(err?.message ?? 'Failed to load form layout');
+        this.layoutLoading.set(false);
+      },
+    });
+  }
+
+  onFormSubmit(data: Record<string, unknown>): void {
+    const entity = this.detailEntity();
+    if (!entity) return;
+
+    // Build user DTO from form data, only including known user keys
+    const userKeys = ['name', 'email', 'status'] as const;
+    const dto: Record<string, unknown> = {};
+    for (const key of userKeys) {
+      if (key in data) {
+        dto[key] = data[key];
+      }
+    }
+
+    // Preserve id and readonly fields from original entity
+    const user: User = {
+      ...entity,
+      ...dto,
+    } as User;
+
+    this.onDetailSave(user);
+  }
+
+  onFormValueChange(values: Record<string, unknown>): void {
+    this.formValues.set(values);
+    this.hasUnsavedChanges.set(true);
+  }
+
   // === Entity Detail Drawer ===
+
+  /**
+   * Map a raw grid row (with database column names like usr_name) to the User model
+   * expected by the form (camelCase fields like name, email, status).
+   */
+  private mapRowToUser(row: Record<string, unknown>): User {
+    return {
+      id: String(row['usr_id'] ?? row['id'] ?? ''),
+      name: String(row['usr_name'] ?? row['name'] ?? ''),
+      email: String(row['usr_email'] ?? row['email'] ?? ''),
+      status: (row['usr_status'] ?? row['status'] ?? 'active') as User['status'],
+      createdAt: String(row['usr_created_at'] ?? row['createdAt'] ?? new Date().toISOString()),
+      updatedAt: String(row['usr_updated_at'] ?? row['updatedAt'] ?? new Date().toISOString()),
+    };
+  }
 
   onRowDoubleClick(user: User) {
     // Abrir el drawer de detalle con doble click
-    this.detailEntity.set(user);
+    this.detailEntity.set(this.mapRowToUser(user as unknown as Record<string, unknown>));
     this.showDetail.set(true);
     this.hasUnsavedChanges.set(false);
   }
@@ -681,6 +722,8 @@ export class UserListComponent implements OnInit {
     this.showDetail.set(false);
     this.detailEntity.set(null);
     this.hasUnsavedChanges.set(false);
+    this.layout.set(null);
+    this.formValues.set({});
   }
 
   onDetailSave(entity: unknown) {
@@ -695,6 +738,8 @@ export class UserListComponent implements OnInit {
       this.detailSaving.set(false);
       this.showDetail.set(false);
       this.hasUnsavedChanges.set(false);
+      this.layout.set(null);
+      this.formValues.set({});
       if (user.id) {
         // Update existing
         this.userService.users.update((users) =>
@@ -708,30 +753,6 @@ export class UserListComponent implements OnInit {
       this.detailSaving.set(false);
       console.error('Error saving user:', err);
     });
-  }
-
-  // Obtener el valor de un campo del formulario
-  getFieldValue(key: string): unknown {
-    const entity = this.detailEntity();
-    if (!entity) return '';
-    return (entity as unknown as Record<string, unknown>)[key] ?? '';
-  }
-
-  // Actualizar un campo del entity editable
-  onFieldChange(field: string, value: unknown) {
-    this.detailEntity.update((entity) => {
-      if (!entity) return null;
-      return { ...entity, [field]: value } as User;
-    });
-    // Track de cambios sin guardar
-    this.hasUnsavedChanges.set(true);
-  }
-
-  // Helper para obtener los datos del entity como Record
-  getDetailEntityData(): Record<string, unknown> {
-    const entity = this.detailEntity();
-    if (!entity) return {};
-    return entity as unknown as Record<string, unknown>;
   }
 
   onRelatedItemClick(event: unknown) {

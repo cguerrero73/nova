@@ -98,11 +98,22 @@
     >
       <!-- Template: Visualización del Registro -->
       <ng-template #viewTemplate>
-        <app-entity-form
-          [fields]="formFields"
-          [initialData]="getDetailEntityData()"
-          (fieldChange)="onFieldChange($event.key, $event.value)"
-        />
+        @if (layoutLoading()) {
+          <div class="text-center py-8 text-gray-500">Loading form...</div>
+        } @else if (layoutError()) {
+          <div class="text-center py-8 text-red-500">{{ layoutError() }}</div>
+        } @else if (layout()) {
+          <app-form-runtime
+            [layout]="layout()"
+            [initialValues]="formInitialValues()"
+            [showActions]="false"
+            (formValueChange)="onFormValueChange($event)"
+          />
+        } @else {
+          <div class="text-center py-8 text-gray-500">
+            Form definition not found. Please create a "user-form" form definition first.
+          </div>
+        }
       </ng-template>
 
       <!-- Template: Comentarios -->
