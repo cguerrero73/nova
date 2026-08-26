@@ -79,7 +79,7 @@ type GridConfig struct {
 	AvailableFilters []int     `json:"availableFilters"`
 	AvailableSort    []int     `json:"availableSort"`
 	AvailableDisplay []int     `json:"availableDisplay"`
-	Columns          []GridCol `json:"columns,omitempty"`
+	Columns          []GridCol `json:"columns"`
 }
 
 // GridConfigResponse represents the API response for grid config

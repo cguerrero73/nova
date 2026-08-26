@@ -226,10 +226,16 @@ export class UserListComponent implements OnInit {
 
         console.log('[UserList] Grid config loaded, gridId:', config.gridId);
         this.currentGridId.set(config.gridId);
-        this.gridColumns.set(config.columns);
+        const columns = config.columns ?? [];
+        this.gridColumns.set(columns);
 
         // Construir columnas dinámicamente desde el backend
-        this.buildColumnsFromBackend(config.columns);
+        if (columns.length > 0) {
+          this.buildColumnsFromBackend(columns);
+        } else {
+          console.warn('[UserList] No columns from backend config, using fallback');
+          this.buildColumns();
+        }
 
         // Continuar con el flujo: cargar queries usando el gridId
         this.loadGridQueries(config.gridId);
