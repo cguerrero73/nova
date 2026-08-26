@@ -1,7 +1,8 @@
-import { Component, input } from '@angular/core';
+import { Component, input, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
-import { SelectField } from '../../models/layout-definition.model';
+import { SelectField, FieldOption } from '../../models/layout-definition.model';
+import { SyscodeService } from '@core/services/syscode.service';
 
 @Component({
   selector: 'app-field-select',
@@ -21,7 +22,7 @@ import { SelectField } from '../../models/layout-definition.model';
         <option value="" disabled [selected]="!control().value">
           {{ field().ui.placeholder || 'Select an option' }}
         </option>
-        @for (opt of field().options; track opt.value) {
+        @for (opt of resolvedOptions(); track opt.value) {
           <option [ngValue]="opt.value">{{ opt.label }}</option>
         }
       </select>
@@ -46,8 +47,30 @@ import { SelectField } from '../../models/layout-definition.model';
     .field-error { font-size: 0.75rem; color: #dc2626; }
   `],
 })
-export class FieldSelectComponent {
+export class FieldSelectComponent implements OnInit {
+  private readonly syscodeService = inject(SyscodeService);
+
   field = input.required<SelectField>();
   control = input.required<FormControl>();
   isRequired = input(false);
+
+  resolvedOptions = signal<FieldOption[]>([]);
+
+  ngOnInit(): void {
+    const staticOptions = this.field().options ?? [];
+    const dataSource = this.field().dataSource;
+
+    if (dataSource?.type === 'syscodes' && dataSource.codeType) {
+      this.syscodeService.getByType(dataSource.codeType).subscribe({
+        next: (options) => {
+          this.resolvedOptions.set([...staticOptions, ...options]);
+        },
+        error: () => {
+          this.resolvedOptions.set(staticOptions);
+        },
+      });
+    } else {
+      this.resolvedOptions.set(staticOptions);
+    }
+  }
 }
