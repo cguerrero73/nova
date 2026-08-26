@@ -13,7 +13,8 @@ type GridRepository interface {
 	// FindAll returns all grids
 	FindAll(ctx context.Context) ([]*Grid, error)
 
-	// ExecuteQuery executes a custom query with parameters
-	ExecuteQuery(ctx context.Context, baseQuery string, fields []string,
+	// ExecuteQuery executes a custom query with parameters.
+	// columns pairs database column names with the domain keys that should be returned.
+	ExecuteQuery(ctx context.Context, baseQuery string, columns []GridColumnRef,
 		filters []FilterCondition, sort []SortCondition, page, pageSize int) (*GridResult, error)
 }

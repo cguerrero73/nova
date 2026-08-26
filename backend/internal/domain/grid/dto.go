@@ -61,6 +61,12 @@ type GridCol struct {
 	Filterable bool   `json:"filterable"`
 }
 
+// GridColumnRef pairs a database column name with its exposed domain key.
+type GridColumnRef struct {
+	DBName    string
+	DomainKey string
+}
+
 // GridConfig represents grid configuration metadata
 type GridConfig struct {
 	GridID           int       `json:"gridId"`

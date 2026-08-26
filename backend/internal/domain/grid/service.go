@@ -82,7 +82,7 @@ func (s *Service) GetConfig(ctx context.Context, gridName string) (*GridConfig, 
 			for _, f := range fields {
 				columns = append(columns, GridCol{
 					ID:         f.ID,
-					Key:        f.FieldName,
+					Key:        f.DomainKeyOrName(),
 					Label:      formatLabel(f.FieldName),
 					Type:       f.DataType,
 					Sortable:   grid.IsFieldSortable(f.ID),
@@ -125,7 +125,7 @@ func (s *Service) GetConfigByID(ctx context.Context, gridID int) (*GridConfig, e
 			for _, f := range fields {
 				columns = append(columns, GridCol{
 					ID:         f.ID,
-					Key:        f.FieldName,
+					Key:        f.DomainKeyOrName(),
 					Label:      formatLabel(f.FieldName),
 					Type:       f.DataType,
 					Sortable:   grid.IsFieldSortable(f.ID),
@@ -160,7 +160,41 @@ func (s *Service) ExecuteQuery(ctx context.Context, gridID int, config *GridQuer
 		pageSize = 20
 	}
 
-	return s.repo.ExecuteQuery(ctx, "", nil, config.Filters, config.Sort, page, pageSize)
+	// Fetch grid to resolve base query
+	grid, err := s.repo.FindByID(ctx, gridID)
+	if err != nil {
+		return nil, err
+	}
+	if grid == nil {
+		return nil, ErrGridNotFound
+	}
+
+	// Build column references (DB name -> domain key) from field metadata
+	var columns []GridColumnRef
+	fieldMap := make(map[int]string)
+	if s.fieldRepo != nil {
+		fields, err := s.fieldRepo.FindByGrid(ctx, grid.BaseQuery)
+		if err == nil {
+			columns = make([]GridColumnRef, 0, len(config.Fields))
+			for _, f := range fields {
+				fieldMap[f.ID] = f.FieldName
+			}
+			for _, id := range config.Fields {
+				if name, ok := fieldMap[id]; ok {
+					domainKey := name
+					for _, f := range fields {
+						if f.ID == id {
+							domainKey = f.DomainKeyOrName()
+							break
+						}
+					}
+					columns = append(columns, GridColumnRef{DBName: name, DomainKey: domainKey})
+				}
+			}
+		}
+	}
+
+	return s.repo.ExecuteQuery(ctx, grid.BaseQuery, columns, config.Filters, config.Sort, page, pageSize)
 }
 
 // GetGridByID returns a grid by ID
@@ -204,34 +238,37 @@ func (s *Service) ExecuteQueryByID(ctx context.Context, queryID string, page, pa
 		return nil, ErrGridNotFound
 	}
 
-	// 3. Get field metadata and build ID to name map
-	fieldMap := make(map[int]string)
-	var columnNames []string
+	// 3. Get field metadata and build ID -> field map
+	fieldMap := make(map[int]*fieldsdomain.Field)
+	var columns []GridColumnRef
 	if s.fieldRepo != nil {
 		fields, err := s.fieldRepo.FindByGrid(ctx, grid.BaseQuery)
 		if err == nil {
 			for _, f := range fields {
-				fieldMap[f.ID] = f.FieldName
+				fieldMap[f.ID] = f
 			}
 		}
 	}
 
-	// 4. Convert field IDs to names for SELECT clause
-	columnNames = make([]string, len(savedQuery.Query.Fields))
-	for i, id := range savedQuery.Query.Fields {
-		columnNames[i] = fieldMap[id]
+	// 4. Convert field IDs to column references for SELECT clause
+	columns = make([]GridColumnRef, 0, len(savedQuery.Query.Fields))
+	dbNameMap := make(map[int]string)
+	for _, id := range savedQuery.Query.Fields {
+		if f, ok := fieldMap[id]; ok {
+			columns = append(columns, GridColumnRef{DBName: f.FieldName, DomainKey: f.DomainKeyOrName()})
+			dbNameMap[id] = f.FieldName
+		}
 	}
 
 	// 5. Build config with converted sort and filters
 	config := &GridQueryConfig{
 		Fields:  savedQuery.Query.Fields, // IDs guardados
-		Sort:    convertSort(savedQuery.Query.Sort, fieldMap),
-		Filters: convertFilters(savedQuery.Query.Filters, fieldMap),
+		Sort:    convertSort(savedQuery.Query.Sort, dbNameMap),
+		Filters: convertFilters(savedQuery.Query.Filters, dbNameMap),
 	}
 
-	// 5. Call repo.ExecuteQuery with baseQuery from grid
-	// Nota: se pasan columnNames (strings) porque repo.ExecuteQuery espera nombres, no IDs
-	return s.repo.ExecuteQuery(ctx, grid.BaseQuery, columnNames, config.Filters, config.Sort, page, pageSize)
+	// 6. Call repo.ExecuteQuery with baseQuery from grid and domain-key column refs
+	return s.repo.ExecuteQuery(ctx, grid.BaseQuery, columns, config.Filters, config.Sort, page, pageSize)
 }
 
 // convertSort converts queries.QuerySort to grid.SortCondition using fieldMap for ID→name
