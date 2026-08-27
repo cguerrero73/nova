@@ -191,18 +191,11 @@ func (r *PgUserRepository) Update(ctx context.Context, user *users.User) error {
 }
 
 func (r *PgUserRepository) Delete(ctx context.Context, id string) error {
+	// Hard delete: if the user is referenced by other tables (e.g. eamuser_organizations),
+	// the database will raise a foreign-key violation error intentionally.
+	query := `DELETE FROM eamusers WHERE usr_id = $1`
 	return infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
-		// Remove related organization assignments first (FK on usr_code)
-		_, err := tx.Exec(ctx,
-			`DELETE FROM eamuser_organizations WHERE uog_user = (SELECT usr_code FROM eamusers WHERE usr_id = $1)`,
-			id,
-		)
-		if err != nil {
-			return err
-		}
-
-		// Physically delete the user record
-		_, err = tx.Exec(ctx, `DELETE FROM eamusers WHERE usr_id = $1`, id)
+		_, err := tx.Exec(ctx, query, id)
 		return err
 	})
 }
