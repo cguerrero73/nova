@@ -610,13 +610,11 @@ export class UserListComponent implements OnInit {
 
     if (currentIndex > 0) {
       const prevUser = users[currentIndex - 1];
+      // Mantener selección del grid sincronizada con el drawer
+      this.selected.set(prevUser);
       if (this.showDetail()) {
-        // Si el drawer está abierto, actualizar el entity del drawer
-        this.detailEntity.set(this.mapRowToUser(prevUser as unknown as Record<string, unknown>));
+        this.detailEntity.set(prevUser);
         this.hasUnsavedChanges.set(false);
-      } else {
-        // Si el drawer está cerrado, solo mover la selección
-        this.selected.set(prevUser);
       }
     }
   }
@@ -632,13 +630,11 @@ export class UserListComponent implements OnInit {
 
     if (currentIndex < users.length - 1) {
       const nextUser = users[currentIndex + 1];
+      // Mantener selección del grid sincronizada con el drawer
+      this.selected.set(nextUser);
       if (this.showDetail()) {
-        // Si el drawer está abierto, actualizar el entity del drawer
-        this.detailEntity.set(this.mapRowToUser(nextUser as unknown as Record<string, unknown>));
+        this.detailEntity.set(nextUser);
         this.hasUnsavedChanges.set(false);
-      } else {
-        // Si el drawer está cerrado, solo mover la selección
-        this.selected.set(nextUser);
       }
     }
   }
