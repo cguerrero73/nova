@@ -39,6 +39,7 @@ export class UserDetailComponent implements OnInit {
       this.isNewMode.set(true);
       this.user.set({
         id: '',
+        code: '',
         name: '',
         email: '',
         status: 'active',

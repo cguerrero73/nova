@@ -535,6 +535,7 @@ export class UserListComponent implements OnInit {
     // Crear nuevo usuario en el drawer (el mismo formulario de edición)
     const newUser: User = {
       id: '', // ID vacío para indicar que es nuevo
+      code: '',
       name: '',
       email: '',
       status: 'active',
@@ -678,7 +679,7 @@ export class UserListComponent implements OnInit {
     if (!entity) return;
 
     // Build user DTO from form data, only including known user keys
-    const userKeys = ['name', 'email', 'status'] as const;
+    const userKeys = ['code', 'name', 'email', 'status'] as const;
     const dto: Record<string, unknown> = {};
     for (const key of userKeys) {
       if (key in data) {
@@ -711,6 +712,7 @@ export class UserListComponent implements OnInit {
     return {
       ...row,
       id: String(row['id'] ?? row['usr_id'] ?? ''),
+      code: String(row['code'] ?? row['usr_code'] ?? ''),
       name: String(row['name'] ?? row['usr_name'] ?? ''),
       email: String(row['email'] ?? row['usr_email'] ?? ''),
       status: (row['status'] ?? row['usr_status'] ?? 'active') as User['status'],
