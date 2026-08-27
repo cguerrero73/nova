@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"strconv"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -192,9 +191,18 @@ func (r *PgUserRepository) Update(ctx context.Context, user *users.User) error {
 }
 
 func (r *PgUserRepository) Delete(ctx context.Context, id string) error {
-	query := `UPDATE eamusers SET usr_notused = '+', usr_updated_at = $2 WHERE usr_id = $1`
 	return infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
-		_, err := tx.Exec(ctx, query, id, time.Now())
+		// Remove related organization assignments first (FK on usr_code)
+		_, err := tx.Exec(ctx,
+			`DELETE FROM eamuser_organizations WHERE uog_user = (SELECT usr_code FROM eamusers WHERE usr_id = $1)`,
+			id,
+		)
+		if err != nil {
+			return err
+		}
+
+		// Physically delete the user record
+		_, err = tx.Exec(ctx, `DELETE FROM eamusers WHERE usr_id = $1`, id)
 		return err
 	})
 }
