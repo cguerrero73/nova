@@ -42,8 +42,6 @@ export class UserDetailComponent implements OnInit {
         name: '',
         email: '',
         status: 'active',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       });
     } else if (id) {
       this.isNewMode.set(false);

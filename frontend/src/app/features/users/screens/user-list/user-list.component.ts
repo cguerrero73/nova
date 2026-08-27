@@ -312,14 +312,6 @@ export class UserListComponent implements OnInit {
           return status === 'active' ? activeLabel : inactiveLabel;
         },
       },
-      {
-        accessorKey: 'createdAt',
-        header: this.t['form.createdAt.label'] || 'Fecha Creación',
-        cell: (info: { getValue: () => unknown }) => {
-          const date = new Date(info.getValue() as string);
-          return date.toLocaleDateString();
-        },
-      },
     ];
   }
 
@@ -546,8 +538,6 @@ export class UserListComponent implements OnInit {
       name: '',
       email: '',
       status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
     this.detailEntity.set(newUser);
     this.showDetail.set(true);
@@ -703,7 +693,7 @@ export class UserListComponent implements OnInit {
   /**
    * Normalize a grid row to the User model. The backend now returns domain keys
    * (id, name, email, status), but this helper still defends against raw DB column
-   * names and fills optional fields with safe defaults.
+   * names when a fallback is needed.
    */
   private mapRowToUser(row: Record<string, unknown>): User {
     return {
@@ -712,8 +702,6 @@ export class UserListComponent implements OnInit {
       name: String(row['name'] ?? row['usr_name'] ?? ''),
       email: String(row['email'] ?? row['usr_email'] ?? ''),
       status: (row['status'] ?? row['usr_status'] ?? 'active') as User['status'],
-      createdAt: String(row['createdAt'] ?? row['usr_created_at'] ?? new Date().toISOString()),
-      updatedAt: String(row['updatedAt'] ?? row['usr_updated_at'] ?? new Date().toISOString()),
     } as User;
   }
 

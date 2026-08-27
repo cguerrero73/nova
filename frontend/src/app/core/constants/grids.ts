@@ -46,13 +46,12 @@ export const GRID_FIELDS: Record<GridId, GridField[]> = {
     { id: 1, key: 'id', label: 'ID', type: 'string', sortable: true, filterable: true },
     { id: 2, key: 'name', label: 'Nombre', type: 'string', sortable: true, filterable: true },
     { id: 3, key: 'email', label: 'Email', type: 'string', sortable: true, filterable: true },
-    { id: 4, key: 'status', label: 'Estado', type: 'select', sortable: true, filterable: true, 
+    { id: 4, key: 'status', label: 'Estado', type: 'select', sortable: true, filterable: true,
       options: [
         { value: 'active', label: 'Activo' },
         { value: 'inactive', label: 'Inactivo' },
       ]
     },
-    { id: 5, key: 'createdAt', label: 'Fecha Creación', type: 'date', sortable: true, filterable: true },
   ],
 };
 
