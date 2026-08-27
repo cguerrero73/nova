@@ -226,10 +226,16 @@ export class UserListComponent implements OnInit {
 
         console.log('[UserList] Grid config loaded, gridId:', config.gridId);
         this.currentGridId.set(config.gridId);
-        this.gridColumns.set(config.columns);
+        const columns = config.columns ?? [];
+        this.gridColumns.set(columns);
 
         // Construir columnas dinámicamente desde el backend
-        this.buildColumnsFromBackend(config.columns);
+        if (columns.length > 0) {
+          this.buildColumnsFromBackend(columns);
+        } else {
+          console.warn('[UserList] No columns from backend config, using fallback');
+          this.buildColumns();
+        }
 
         // Continuar con el flujo: cargar queries usando el gridId
         this.loadGridQueries(config.gridId);
@@ -304,14 +310,6 @@ export class UserListComponent implements OnInit {
           const activeLabel = this.t['status.active'] || 'Activo';
           const inactiveLabel = this.t['status.inactive'] || 'Inactivo';
           return status === 'active' ? activeLabel : inactiveLabel;
-        },
-      },
-      {
-        accessorKey: 'createdAt',
-        header: this.t['form.createdAt.label'] || 'Fecha Creación',
-        cell: (info: { getValue: () => unknown }) => {
-          const date = new Date(info.getValue() as string);
-          return date.toLocaleDateString();
         },
       },
     ];
@@ -411,10 +409,11 @@ export class UserListComponent implements OnInit {
     if (selectedQueryId) {
       this.queryService.executeQuery(selectedQueryId, page, 20).subscribe({
         next: (response) => {
+          const rows = (response.data as Record<string, unknown>[]).map((row) => this.mapRowToUser(row));
           if (page === 1) {
-            this.userService.users.set(response.data as User[]);
+            this.userService.users.set(rows);
           } else {
-            this.userService.users.update((current) => [...current, ...(response.data as User[])]);
+            this.userService.users.update((current) => [...current, ...rows]);
           }
           this.uiStore.setLoading(false);
         },
@@ -434,10 +433,11 @@ export class UserListComponent implements OnInit {
         20
       ).subscribe({
         next: (response) => {
+          const rows = (response.data as Record<string, unknown>[]).map((row) => this.mapRowToUser(row));
           if (page === 1) {
-            this.userService.users.set(response.data as User[]);
+            this.userService.users.set(rows);
           } else {
-            this.userService.users.update((current) => [...current, ...(response.data as User[])]);
+            this.userService.users.update((current) => [...current, ...rows]);
           }
           this.uiStore.setLoading(false);
         },
@@ -519,12 +519,8 @@ export class UserListComponent implements OnInit {
   }
 
   onUserSelect(user: User) {
-    // Toggle selection: if already selected, deselect; otherwise select
-    if (this.selected()?.id === user.id) {
-      this.selected.set(null);
-    } else {
-      this.selected.set(user);
-    }
+    // Select the clicked row (deselect is handled by the dedicated button)
+    this.selected.set(user);
   }
 
   onPageChange(page: number) {
@@ -542,8 +538,6 @@ export class UserListComponent implements OnInit {
       name: '',
       email: '',
       status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
     this.detailEntity.set(newUser);
     this.showDetail.set(true);
@@ -697,23 +691,25 @@ export class UserListComponent implements OnInit {
   // === Entity Detail Drawer ===
 
   /**
-   * Map a raw grid row (with database column names like usr_name) to the User model
-   * expected by the form (camelCase fields like name, email, status).
+   * Normalize a grid row to the User model. The backend now returns domain keys
+   * (id, name, email, status), but this helper still defends against raw DB column
+   * names when a fallback is needed.
    */
   private mapRowToUser(row: Record<string, unknown>): User {
     return {
-      id: String(row['usr_id'] ?? row['id'] ?? ''),
-      name: String(row['usr_name'] ?? row['name'] ?? ''),
-      email: String(row['usr_email'] ?? row['email'] ?? ''),
-      status: (row['usr_status'] ?? row['status'] ?? 'active') as User['status'],
-      createdAt: String(row['usr_created_at'] ?? row['createdAt'] ?? new Date().toISOString()),
-      updatedAt: String(row['usr_updated_at'] ?? row['updatedAt'] ?? new Date().toISOString()),
-    };
+      ...row,
+      id: String(row['id'] ?? row['usr_id'] ?? ''),
+      name: String(row['name'] ?? row['usr_name'] ?? ''),
+      email: String(row['email'] ?? row['usr_email'] ?? ''),
+      status: (row['status'] ?? row['usr_status'] ?? 'active') as User['status'],
+    } as User;
   }
 
   onRowDoubleClick(user: User) {
-    // Abrir el drawer de detalle con doble click
-    this.detailEntity.set(this.mapRowToUser(user as unknown as Record<string, unknown>));
+    // Abrir el drawer de detalle con doble click y marcar la fila seleccionada
+    const mapped = this.mapRowToUser(user as unknown as Record<string, unknown>);
+    this.selected.set(mapped);
+    this.detailEntity.set(mapped);
     this.showDetail.set(true);
     this.hasUnsavedChanges.set(false);
   }

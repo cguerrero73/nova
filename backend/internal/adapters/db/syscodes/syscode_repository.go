@@ -22,15 +22,14 @@ func NewPgSysCodeRepository(pool *pgxpool.Pool) *PgSysCodeRepository {
 func (r *PgSysCodeRepository) FindByID(ctx context.Context, id string) (*syscodes.SysCode, error) {
 	var s *syscodes.SysCode
 	query := `
-		SELECT sys_id, sys_type, sys_code, sys_ucode, sys_desc, sys_system,
-		       sys_notused, sys_created_at, sys_updated_at
+		SELECT sys_id, sys_type, sys_code, sys_ucode, sys_desc, sys_system, sys_notused
 		FROM eamsyscodes WHERE sys_id = $1`
 
 	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
 		var code syscodes.SysCode
 		err := tx.QueryRow(ctx, query, id).Scan(
 			&code.ID, &code.Type, &code.Code, &code.UCode, &code.Desc, &code.System,
-			&code.NotUsed, &code.CreatedAt, &code.UpdatedAt,
+			&code.NotUsed,
 		)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
@@ -48,15 +47,14 @@ func (r *PgSysCodeRepository) FindByID(ctx context.Context, id string) (*syscode
 func (r *PgSysCodeRepository) FindByTypeAndCode(ctx context.Context, codeType, code string) (*syscodes.SysCode, error) {
 	var s *syscodes.SysCode
 	query := `
-		SELECT sys_id, sys_type, sys_code, sys_ucode, sys_desc, sys_system,
-		       sys_notused, sys_created_at, sys_updated_at
+		SELECT sys_id, sys_type, sys_code, sys_ucode, sys_desc, sys_system, sys_notused
 		FROM eamsyscodes WHERE sys_type = $1 AND sys_code = $2`
 
 	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
 		var code syscodes.SysCode
 		err := tx.QueryRow(ctx, query, codeType, code).Scan(
 			&code.ID, &code.Type, &code.Code, &code.UCode, &code.Desc, &code.System,
-			&code.NotUsed, &code.CreatedAt, &code.UpdatedAt,
+			&code.NotUsed,
 		)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
@@ -74,8 +72,7 @@ func (r *PgSysCodeRepository) FindByTypeAndCode(ctx context.Context, codeType, c
 func (r *PgSysCodeRepository) FindByType(ctx context.Context, codeType string) ([]*syscodes.SysCode, error) {
 	var result []*syscodes.SysCode
 	query := `
-		SELECT sys_id, sys_type, sys_code, sys_ucode, sys_desc, sys_system,
-		       sys_notused, sys_created_at, sys_updated_at
+		SELECT sys_id, sys_type, sys_code, sys_ucode, sys_desc, sys_system, sys_notused
 		FROM eamsyscodes WHERE sys_type = $1
 		ORDER BY sys_code ASC`
 
@@ -90,7 +87,7 @@ func (r *PgSysCodeRepository) FindByType(ctx context.Context, codeType string) (
 			var code syscodes.SysCode
 			err := rows.Scan(
 				&code.ID, &code.Type, &code.Code, &code.UCode, &code.Desc, &code.System,
-				&code.NotUsed, &code.CreatedAt, &code.UpdatedAt,
+				&code.NotUsed,
 			)
 			if err != nil {
 				return err
@@ -106,15 +103,14 @@ func (r *PgSysCodeRepository) FindByType(ctx context.Context, codeType string) (
 func (r *PgSysCodeRepository) FindByUCode(ctx context.Context, ucode string) (*syscodes.SysCode, error) {
 	var s *syscodes.SysCode
 	query := `
-		SELECT sys_id, sys_type, sys_code, sys_ucode, sys_desc, sys_system,
-		       sys_notused, sys_created_at, sys_updated_at
+		SELECT sys_id, sys_type, sys_code, sys_ucode, sys_desc, sys_system, sys_notused
 		FROM eamsyscodes WHERE sys_ucode = $1`
 
 	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
 		var code syscodes.SysCode
 		err := tx.QueryRow(ctx, query, ucode).Scan(
 			&code.ID, &code.Type, &code.Code, &code.UCode, &code.Desc, &code.System,
-			&code.NotUsed, &code.CreatedAt, &code.UpdatedAt,
+			&code.NotUsed,
 		)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
@@ -132,8 +128,7 @@ func (r *PgSysCodeRepository) FindByUCode(ctx context.Context, ucode string) (*s
 func (r *PgSysCodeRepository) FindAll(ctx context.Context) ([]*syscodes.SysCode, error) {
 	var result []*syscodes.SysCode
 	query := `
-		SELECT sys_id, sys_type, sys_code, sys_ucode, sys_desc, sys_system,
-		       sys_notused, sys_created_at, sys_updated_at
+		SELECT sys_id, sys_type, sys_code, sys_ucode, sys_desc, sys_system, sys_notused
 		FROM eamsyscodes
 		ORDER BY sys_type ASC, sys_code ASC`
 
@@ -148,7 +143,7 @@ func (r *PgSysCodeRepository) FindAll(ctx context.Context) ([]*syscodes.SysCode,
 			var code syscodes.SysCode
 			err := rows.Scan(
 				&code.ID, &code.Type, &code.Code, &code.UCode, &code.Desc, &code.System,
-				&code.NotUsed, &code.CreatedAt, &code.UpdatedAt,
+				&code.NotUsed,
 			)
 			if err != nil {
 				return err
@@ -164,13 +159,13 @@ func (r *PgSysCodeRepository) FindAll(ctx context.Context) ([]*syscodes.SysCode,
 func (r *PgSysCodeRepository) Create(ctx context.Context, s *syscodes.SysCode) error {
 	query := `
 		INSERT INTO eamsyscodes (sys_id, sys_type, sys_code, sys_ucode, sys_desc,
-		                         sys_system, sys_notused, sys_created_at, sys_updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+		                         sys_system, sys_notused)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
 	return infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
 		_, err := tx.Exec(ctx, query,
 			s.ID, s.Type, s.Code, s.UCode, s.Desc,
-			s.System, s.NotUsed, s.CreatedAt, s.UpdatedAt,
+			s.System, s.NotUsed,
 		)
 		return err
 	})
@@ -179,11 +174,11 @@ func (r *PgSysCodeRepository) Create(ctx context.Context, s *syscodes.SysCode) e
 func (r *PgSysCodeRepository) Update(ctx context.Context, s *syscodes.SysCode) error {
 	query := `
 		UPDATE eamsyscodes 
-		SET sys_ucode = $2, sys_desc = $3, sys_notused = $4, sys_updated_at = $5
+		SET sys_ucode = $2, sys_desc = $3, sys_notused = $4
 		WHERE sys_id = $1`
 
 	return infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
-		_, err := tx.Exec(ctx, query, s.ID, s.UCode, s.Desc, s.NotUsed, s.UpdatedAt)
+		_, err := tx.Exec(ctx, query, s.ID, s.UCode, s.Desc, s.NotUsed)
 		return err
 	})
 }

@@ -24,14 +24,14 @@ func NewPgFieldRepository(pool *pgxpool.Pool) *PgFieldRepository {
 func (r *PgFieldRepository) FindByID(ctx context.Context, id int) (*fieldsdomain.Field, error) {
 	var field *fieldsdomain.Field
 	query := `
-		SELECT fld_id, fld_fieldname, fld_datatype, fld_tablename,
+		SELECT fld_id, fld_fieldname, COALESCE(fld_domain_key, fld_fieldname), fld_datatype, fld_tablename,
 		       fld_created_at, fld_updated_at
 		FROM eamfields WHERE fld_id = $1`
 
 	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
 		var f fieldsdomain.Field
 		err := tx.QueryRow(ctx, query, id).Scan(
-			&f.ID, &f.FieldName, &f.DataType, &f.TableName,
+			&f.ID, &f.FieldName, &f.DomainKey, &f.DataType, &f.TableName,
 			&f.CreatedAt, &f.UpdatedAt,
 		)
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -51,7 +51,7 @@ func (r *PgFieldRepository) FindByID(ctx context.Context, id int) (*fieldsdomain
 func (r *PgFieldRepository) FindByTable(ctx context.Context, tableName string) ([]*fieldsdomain.Field, error) {
 	var result []*fieldsdomain.Field
 	query := `
-		SELECT fld_id, fld_fieldname, fld_datatype, fld_tablename,
+		SELECT fld_id, fld_fieldname, COALESCE(fld_domain_key, fld_fieldname), fld_datatype, fld_tablename,
 		       fld_created_at, fld_updated_at
 		FROM eamfields
 		WHERE fld_tablename = $1
@@ -67,7 +67,7 @@ func (r *PgFieldRepository) FindByTable(ctx context.Context, tableName string) (
 		for rows.Next() {
 			var f fieldsdomain.Field
 			err := rows.Scan(
-				&f.ID, &f.FieldName, &f.DataType, &f.TableName,
+				&f.ID, &f.FieldName, &f.DomainKey, &f.DataType, &f.TableName,
 				&f.CreatedAt, &f.UpdatedAt,
 			)
 			if err != nil {
@@ -94,7 +94,7 @@ func (r *PgFieldRepository) FindByGrid(ctx context.Context, baseQuery string) ([
 
 	// Single query with IN clause instead of multiple queries
 	query := `
-		SELECT fld_id, fld_fieldname, fld_datatype, fld_tablename,
+		SELECT fld_id, fld_fieldname, COALESCE(fld_domain_key, fld_fieldname), fld_datatype, fld_tablename,
 		       fld_created_at, fld_updated_at
 		FROM eamfields
 		WHERE fld_tablename = ANY($1)
@@ -110,7 +110,7 @@ func (r *PgFieldRepository) FindByGrid(ctx context.Context, baseQuery string) ([
 		for rows.Next() {
 			var f fieldsdomain.Field
 			err := rows.Scan(
-				&f.ID, &f.FieldName, &f.DataType, &f.TableName,
+				&f.ID, &f.FieldName, &f.DomainKey, &f.DataType, &f.TableName,
 				&f.CreatedAt, &f.UpdatedAt,
 			)
 			if err != nil {
@@ -128,7 +128,7 @@ func (r *PgFieldRepository) FindByGrid(ctx context.Context, baseQuery string) ([
 func (r *PgFieldRepository) FindByTableAndField(ctx context.Context, tableName, fieldName string) (*fieldsdomain.Field, error) {
 	var field *fieldsdomain.Field
 	query := `
-		SELECT fld_id, fld_fieldname, fld_datatype, fld_tablename,
+		SELECT fld_id, fld_fieldname, COALESCE(fld_domain_key, fld_fieldname), fld_datatype, fld_tablename,
 		       fld_created_at, fld_updated_at
 		FROM eamfields
 		WHERE fld_tablename = $1 AND fld_fieldname = $2`
@@ -136,7 +136,7 @@ func (r *PgFieldRepository) FindByTableAndField(ctx context.Context, tableName, 
 	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
 		var f fieldsdomain.Field
 		err := tx.QueryRow(ctx, query, tableName, fieldName).Scan(
-			&f.ID, &f.FieldName, &f.DataType, &f.TableName,
+			&f.ID, &f.FieldName, &f.DomainKey, &f.DataType, &f.TableName,
 			&f.CreatedAt, &f.UpdatedAt,
 		)
 		if errors.Is(err, pgx.ErrNoRows) {

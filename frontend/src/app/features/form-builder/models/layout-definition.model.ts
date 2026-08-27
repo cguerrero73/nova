@@ -19,6 +19,11 @@ export interface FieldOption {
   value: string | number;
 }
 
+export interface FieldDataSource {
+  type: 'syscodes';
+  codeType: string;
+}
+
 // --- Validator kinds ---
 
 export type ValidatorKind =
@@ -36,6 +41,7 @@ interface BaseField {
   name: string;
   ui: FieldUi;
   validators?: ValidatorKind[];
+  dataSource?: FieldDataSource;
 }
 
 export interface TextField extends BaseField {
@@ -60,17 +66,17 @@ export interface CheckboxField extends BaseField {
 
 export interface SelectField extends BaseField {
   type: 'select';
-  options: FieldOption[];
+  options?: FieldOption[];
 }
 
 export interface RadioField extends BaseField {
   type: 'radio';
-  options: FieldOption[];
+  options?: FieldOption[];
 }
 
 export interface MultiselectField extends BaseField {
   type: 'multiselect';
-  options: FieldOption[];
+  options?: FieldOption[];
 }
 
 export type FieldType =

@@ -2,7 +2,6 @@ package syscodes
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -35,13 +34,11 @@ func (s *SysCodeService) FindAll(ctx context.Context) ([]*SysCode, error) {
 
 func (s *SysCodeService) Create(ctx context.Context, req *CreateSysCodeRequest) (*SysCode, error) {
 	sysCode := &SysCode{
-		ID:        uuid.New().String(),
-		Type:      req.Type,
-		Code:      req.Code,
-		UCode:     req.UCode,
-		Desc:      req.Desc,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:    uuid.New().String(),
+		Type:  req.Type,
+		Code:  req.Code,
+		UCode: req.UCode,
+		Desc:  req.Desc,
 	}
 
 	if req.System == "+" {
@@ -75,7 +72,6 @@ func (s *SysCodeService) Update(ctx context.Context, id string, req *UpdateSysCo
 	if req.Desc != "" {
 		sysCode.Desc = req.Desc
 	}
-	sysCode.UpdatedAt = time.Now()
 
 	if err := s.repo.Update(ctx, sysCode); err != nil {
 		return nil, err

@@ -120,16 +120,20 @@ func (r *PgGridRepository) FindAll(ctx context.Context) ([]*griddomain.Grid, err
 }
 
 // ExecuteQuery executes a query with the given base query and parameters
-func (r *PgGridRepository) ExecuteQuery(ctx context.Context, baseQuery string, columns []string,
+func (r *PgGridRepository) ExecuteQuery(ctx context.Context, baseQuery string, columns []griddomain.GridColumnRef,
 	filters []griddomain.FilterCondition, sort []griddomain.SortCondition, page, pageSize int) (*griddomain.GridResult, error) {
 
 	var result *griddomain.GridResult
 
 	err := infraDB.RunInTenantTx(ctx, r.pool, func(tx pgx.Tx) error {
-		// Build SELECT clause - use columns if provided, else *
+		// Build SELECT clause - alias DB columns to their domain keys
 		selectClause := "*"
 		if len(columns) > 0 {
-			selectClause = strings.Join(columns, ", ")
+			parts := make([]string, len(columns))
+			for i, col := range columns {
+				parts[i] = fmt.Sprintf("%s AS \"%s\"", col.DBName, col.DomainKey)
+			}
+			selectClause = strings.Join(parts, ", ")
 		}
 
 		// Build WHERE clause from filters
