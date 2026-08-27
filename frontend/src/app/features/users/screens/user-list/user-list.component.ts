@@ -545,11 +545,27 @@ export class UserListComponent implements OnInit {
   }
 
   onDelete() {
-    const selected = this.selected();
+    // Si el drawer está abierto, eliminar el registro del drawer; si no, el seleccionado en el grid
+    const target = this.showDetail() ? this.detailEntity() : this.selected();
     const message = this.t['messages.delete_confirm'] || '¿Está seguro que desea eliminar?';
-    if (selected && confirm(`${message} ${selected.name}?`)) {
-      this.userService.deleteUser(selected.id).then((success) => {
-        if (success) {
+    if (!target) return;
+
+    if (confirm(`${message} ${target.name}?`)) {
+      const wasDetailOpen = this.showDetail();
+      this.userService.deleteUser(target.id).then((success) => {
+        if (!success) return;
+
+        const users = this.userService.users();
+        const deletedIndex = users.findIndex((u) => u.id === target.id);
+
+        if (wasDetailOpen) {
+          // Volver al grid y seleccionar el registro siguiente/anterior si existe
+          const nextSelected =
+            users[deletedIndex + 1] ??
+            (deletedIndex > 0 ? users[deletedIndex - 1] : null);
+          this.onDetailClose();
+          this.selected.set(nextSelected);
+        } else {
           this.selected.set(null);
         }
       }).catch((err) => console.error('Error deleting user:', err));
